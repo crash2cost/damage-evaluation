@@ -1,0 +1,40 @@
+{
+  "best_model": "Random Forest",
+  "test_metrics": {
+    "mae": 101.15114805436245,
+    "rmse": 159.36878484863806,
+    "r2": 0.9926694209480416
+  },
+  "parts": [
+    "Door Handle",
+    "Door Window",
+    "Fender",
+    "Front Bumper",
+    "Front Door",
+    "Headlight",
+    "Hood",
+    "Rear Bumper",
+    "Rear Door",
+    "Roof",
+    "Side Mirror",
+    "Tail Light",
+    "Trunk Lid",
+    "Windshield"
+  ],
+  "segments": [
+    "Executive",
+    "Family",
+    "Luxury",
+    "Micro",
+    "SUV"
+  ],
+  "severity_range": [
+    1,
+    5
+  ],
+  "feature_names": [
+    "Part_Encoded",
+    "Severity",
+    "Segment_Encoded"
+  ]
+}
