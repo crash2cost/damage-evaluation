@@ -1,0 +1,67 @@
+# --- 1. Project Specific (המבנה שלך) ---
+# התעלם מכל תיקיית דאטהסט בכל רמה בפרויקט
+**/dataset/
+**/dataset-manual/
+**/dataset-final/
+
+# תיקיות תמונות וקבצי מידע
+archive/
+manual_labels/
+auto_labels/
+CarDD/
+runs/
+
+# קבצי תמונות (כדי שלא להעלות תמונות מקריות)
+*.jpg
+*.jpeg
+*.png
+*.JPG
+*.JPEG
+*.PNG
+*.bmp
+*.gif
+*.tiff
+
+# קבצי CSV עם דאטה (יכולים להיות גדולים)
+*.csv
+
+# קבצי JSON של התקדמות ודאטה
+labeling_progress.json
+training_history.json
+
+# קבצי תיוג YOLO (labels)
+**/labels/*.txt
+
+# התעלם מקבצי מודלים כבדים (שוקלים מאות מגה-בייט)
+# אנחנו רוצים לשמור את הקוד שיוצר אותם, לא את הקבצים הבינאריים עצמם
+*.pt
+*.pth
+*.h5
+*.keras
+*.pkl
+*.joblib
+
+# --- 2. Python Basics ---
+# קבצים זמניים שפייתון יוצר אוטומטית (אין סיבה לשמור אותם)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- 3. Virtual Environments ---
+# סביבות וירטואליות (אם אתה משתמש ב-venv או conda)
+venv/
+env/
+.venv/
+.conda/
+
+# --- 4. OS & IDE Files (חשוב למק) ---
+# קבצי מערכת של Mac
+.DS_Store
+
+# קבצי הגדרות של עורכי קוד (VS Code / PyCharm)
+.vscode/
+.idea/
+
+# --- 5. Security ---
+# משתני סביבה וסיסמאות (אם יהיו לך בהמשך)
+.env
