@@ -53,6 +53,19 @@ python crash2cost.py \
   --car-segment <Micro|Family|Executive|Luxury|SUV>
 ```
 
+### ML API Service
+Run the FastAPI service to expose the model over HTTP:
+```bash
+pip install fastapi uvicorn
+python server.py
+```
+
+**Endpoint:**
+- `POST /assess` (multipart form-data)
+  - `file`: image file
+  - `severity`: 1-5 (optional, default 3)
+  - `carSegment`: Micro | Family | Executive | Luxury | SUV (optional, default Family)
+
 **Example:**
 ```bash
 python crash2cost.py \

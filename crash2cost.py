@@ -39,6 +39,9 @@ class DamageClassifier:
         ])
     def predict(self, image_path):
         image = Image.open(image_path).convert('RGB')
+        return self.predict_image(image)
+
+    def predict_image(self, image):
         input_tensor = self.transform(image).unsqueeze(0).to(self.device)
         with torch.no_grad():
             output = self.model(input_tensor)
