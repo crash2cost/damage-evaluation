@@ -20,7 +20,7 @@ This runs a full diagnostic and tests the machine on 3 sample images.
 
 ### Manual Test:
 ```bash
-python3 crash2cost.py --image archive/image/0.jpeg --severity 3 --car-segment Family
+python3 crash2cost.py --image archive/image/0.jpeg --car-segment Family
 ```
 
 **Expected output:**
@@ -35,7 +35,6 @@ python3 crash2cost.py --image archive/image/0.jpeg --severity 3 --car-segment Fa
 ```bash
 python3 crash2cost.py \
   --image <path_to_car_image> \
-  --severity <1-5> \
   --car-segment <car_type>
 ```
 
@@ -45,13 +44,9 @@ python3 crash2cost.py \
 - Path to car image (JPEG, PNG)
 - Example: `archive/image/0.jpeg`
 
-**--severity** (optional, default: 3)
-- Damage severity level: 1 (minor) to 5 (severe)
-- 1 = Light scratch
-- 2 = Minor dent
-- 3 = Moderate damage
-- 4 = Significant damage
-- 5 = Major damage
+**--severity** (optional override)
+- Manual severity override: 1 (minor) to 5 (severe)
+- If omitted, severity is predicted automatically
 
 **--car-segment** (optional, default: Family)
 - Car type affects repair cost
@@ -61,17 +56,17 @@ python3 crash2cost.py \
 
 **Example 1: Family car with moderate damage**
 ```bash
-python3 crash2cost.py --image archive/image/0.jpeg --severity 3 --car-segment Family
+python3 crash2cost.py --image archive/image/0.jpeg --car-segment Family
 ```
 
 **Example 2: Luxury SUV with major damage**
 ```bash
-python3 crash2cost.py --image archive/image/1.jpeg --severity 5 --car-segment Luxury
+python3 crash2cost.py --image archive/image/1.jpeg --car-segment Luxury
 ```
 
 **Example 3: Micro car with minor scratch**
 ```bash
-python3 crash2cost.py --image archive/image/10.jpeg --severity 1 --car-segment Micro
+python3 crash2cost.py --image archive/image/10.jpeg --car-segment Micro
 ```
 
 ---
@@ -93,17 +88,14 @@ Your machine can identify these 7 damage types:
 ## 📊 Machine Components
 
 ### 1. Detection Model
-- **Model**: YOLOv8s
-- **Location**: `detection-model/runs/damage-detector8/weights/best.pt`
-- **Function**: Locates damage areas in images
-- **Dataset**: 58 training images
+- **Model**: Custom YOLO
+- **Location**: `detection-model/runs/multiclass-yolo/best.pt`
+- **Function**: Locates damage areas and predicts part type
 
-### 2. Classification Model
-- **Model**: ResNet18 CNN
-- **Location**: `regression-model/models/damage_classifier_best.pt`
-- **Function**: Classifies damage into 7 types
-- **Dataset**: 1,048 images (strong!)
-- **Accuracy**: ~60%
+### 2. Severity Model
+- **Model**: ResNet18 CNN (optional)
+- **Location**: `severity_model/models/severity_classifier.pt` (if trained)
+- **Function**: Predicts severity 1–5 per detected region
 
 ### 3. Cost Estimation Model
 - **Model**: Random Forest Regressor
@@ -119,10 +111,8 @@ Your machine can identify these 7 damage types:
 
 1. **Detection Success:**
    ```
-   ✅ Detected damage: head_lamp (confidence: 39.2%)
+   📊 Found 2 damage area(s)
    ```
-   - Confidence > 25% = Good detection
-   - Shows damage type name
 
 2. **Cost Estimation:**
    ```
