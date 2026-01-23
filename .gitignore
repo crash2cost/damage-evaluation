@@ -3,6 +3,7 @@
 **/dataset/
 **/dataset-manual/
 **/dataset-final/
+**/dataset-multiclass/
 
 # תיקיות תמונות וקבצי מידע
 archive/
@@ -10,6 +11,13 @@ manual_labels/
 auto_labels/
 CarDD/
 runs/
+car-damage-detector-1/
+
+# Logs and results
+logs/*.log
+results/*.png
+results/*.jpg
+nohup.out
 
 # קבצי תמונות (כדי שלא להעלות תמונות מקריות)
 *.jpg
