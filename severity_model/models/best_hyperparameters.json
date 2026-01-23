@@ -1,0 +1,9 @@
+{
+  "learning_rate": 0.0001329291894316216,
+  "batch_size": 16,
+  "optimizer": "Adam",
+  "dropout_rate": 0.4464704583099741,
+  "weight_decay": 6.358358856676247e-05,
+  "rotation_degrees": 23,
+  "color_jitter": 0.10617534828874074
+}

@@ -1,0 +1,8 @@
+{
+  "model_type": "RandomForest",
+  "rf_n_estimators": 53,
+  "rf_max_depth": 32,
+  "rf_min_samples_split": 15,
+  "rf_min_samples_leaf": 7,
+  "rf_max_features": null
+}
