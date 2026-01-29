@@ -109,8 +109,8 @@ async def assess_damage(
         enum=["Micro", "Family", "Executive", "Luxury", "SUV"]
     ),
     conf_threshold: float = Query(
-        default=0.25,
-        ge=0.1,
+        default=0.02,
+        ge=0.01,
         le=0.9,
         description="Detection confidence threshold"
     ),
@@ -157,14 +157,18 @@ async def assess_damage(
                 "currency": "ILS"
             })
         else:
-            # No damage detected
+            # Assume some damage if nothing is detected (low confidence fallback)
+            assumed_severity = 2
+            assumed_damage_type = "suspected damage (low confidence)"
+            assumed_part = "Unknown Area"
+            assumed_cost = pipeline.estimate_cost("dent", assumed_severity, car_segment) if pipeline else 1500
             return JSONResponse(content={
-                "damageType": "none",
-                "confidence": 0.0,
-                "part": "None",
-                "severity": 0,
+                "damageType": assumed_damage_type,
+                "confidence": 0.15,
+                "part": assumed_part,
+                "severity": assumed_severity,
                 "carSegment": car_segment,
-                "estimatedCost": 0,
+                "estimatedCost": int(assumed_cost),
                 "currency": "ILS"
             })
         

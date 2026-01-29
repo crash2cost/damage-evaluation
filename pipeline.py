@@ -363,6 +363,16 @@ class Crash2CostPipeline:
         
         # Detect damages
         detections = self.detect_damage(image, conf_threshold)
+        if not detections:
+            # Retry with progressively lower thresholds to avoid false "no damage" results
+            fallback_thresholds = (0.1, 0.05, 0.02, 0.01)
+            for threshold in fallback_thresholds:
+                if threshold >= conf_threshold:
+                    continue
+                detections = self.detect_damage(image, threshold)
+                if detections:
+                    print(f"⚠️ No detections at conf={conf_threshold}. Retrying at conf={threshold} ({len(detections)} found).")
+                    break
         
         # Process each detection
         assessments = []
@@ -440,7 +450,7 @@ def main():
     
     print(f"\n📸 Analyzing: {args.image}")
     assessment = pipeline.assess_damage(
-        image_path=args.image,
+        args.image,
         car_segment=args.car_segment,
         conf_threshold=args.conf,
     )
