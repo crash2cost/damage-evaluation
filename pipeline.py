@@ -13,9 +13,10 @@ Usage:
 """
 
 import argparse
+import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import time
 
 import joblib
@@ -32,6 +33,7 @@ SEVERITY_WEIGHTS = ROOT / "severity_model" / "models" / "best_model.pt"
 COST_MODEL = ROOT / "cost_model" / "models" / "cost_estimator.pkl"
 PART_ENCODER = ROOT / "cost_model" / "models" / "part_encoder.pkl"
 SEGMENT_ENCODER = ROOT / "cost_model" / "models" / "segment_encoder.pkl"
+CONFIG_FILE = ROOT / "config" / "damage_mappings.json"
 
 
 @dataclass
@@ -62,8 +64,9 @@ class VehicleAssessment:
     inference_time_ms: float
 
 
-# Mapping from damage type to repair part name
-DAMAGE_TO_PART = {
+# Fallback mappings (used if config file not found)
+# These are loaded from config/damage_mappings.json by default
+FALLBACK_DAMAGE_TO_PART = {
     "bumper_dent": "Front Bumper",
     "bumper_scratch": "Front Bumper",
     "door_dent": "Front Door",
@@ -73,8 +76,7 @@ DAMAGE_TO_PART = {
     "tail_lamp": "Tail Light",
 }
 
-# Severity mapping from classification to cost model
-DAMAGE_TO_SEVERITY = {
+FALLBACK_DAMAGE_TO_SEVERITY = {
     "scratch": 2,
     "dent": 3,
     "shatter": 4,
@@ -99,23 +101,70 @@ class Crash2CostPipeline:
         detection_weights: Optional[str] = None,
         severity_weights: Optional[str] = None,
         cost_model_path: Optional[str] = None,
+        config_path: Optional[str] = None,
         device: str = "auto",
     ):
         self.device = get_device() if device == "auto" else torch.device(device)
         print(f"Using device: {self.device}")
-        
+
+        # Load configuration
+        self._load_config(config_path or str(CONFIG_FILE))
+
         # Load models
         self._load_detection_model(detection_weights or str(DETECTION_WEIGHTS))
         self._load_severity_model(severity_weights or str(SEVERITY_WEIGHTS))
         self._load_cost_model(cost_model_path or str(COST_MODEL))
-        
+
         # Transforms
         self.severity_transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         ])
-    
+
+    def _load_config(self, config_path: str):
+        """Load damage mappings from configuration file."""
+        self.damage_to_part: Dict[str, str] = {}
+        self.damage_to_severity: Dict[str, int] = {}
+        self.default_unknown_part = "Front Bumper"
+        self.default_unknown_severity = 3
+        self.fallback_cost = 1000
+
+        if not Path(config_path).exists():
+            print(f"⚠️ Config file not found: {config_path}")
+            print("   Using fallback hardcoded mappings")
+            self.damage_to_part = FALLBACK_DAMAGE_TO_PART.copy()
+            self.damage_to_severity = FALLBACK_DAMAGE_TO_SEVERITY.copy()
+            return
+
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+
+            # Load main mappings (filter out _comment keys)
+            self.damage_to_part = {
+                k: v for k, v in config.get("damage_to_part", {}).items()
+                if not k.startswith("_")
+            }
+            self.damage_to_severity = {
+                k: v for k, v in config.get("damage_to_severity", {}).items()
+                if not k.startswith("_")
+            }
+
+            # Load defaults
+            defaults = config.get("default_mappings", {})
+            self.default_unknown_part = defaults.get("unknown_part", "Front Bumper")
+            self.default_unknown_severity = defaults.get("unknown_severity", 3)
+            self.fallback_cost = defaults.get("fallback_cost", 1000)
+
+            print(f"✅ Loaded configuration: {config_path}")
+            print(f"   Damage types supported: {len(self.damage_to_part)}")
+        except Exception as e:
+            print(f"❌ Failed to load config: {e}")
+            print("   Using fallback hardcoded mappings")
+            self.damage_to_part = FALLBACK_DAMAGE_TO_PART.copy()
+            self.damage_to_severity = FALLBACK_DAMAGE_TO_SEVERITY.copy()
+
     def _load_detection_model(self, weights_path: str):
         """Load YOLO detection model."""
         try:
@@ -249,22 +298,22 @@ class Crash2CostPipeline:
             return 1000
         
         # Map damage type to part name
-        part_name = DAMAGE_TO_PART.get(damage_type, "Front Bumper")
-        
+        part_name = self.damage_to_part.get(damage_type, self.default_unknown_part)
+
         try:
             part_enc = self.part_encoder.transform([part_name])[0]
             seg_enc = self.segment_encoder.transform([car_segment])[0]
             cost = self.cost_model.predict([[part_enc, severity, seg_enc]])[0]
             return float(cost)
         except ValueError:
-            return 1000.0
+            return float(self.fallback_cost)
     
     def get_severity(self, damage_type: str) -> int:
         """Get severity level from damage type."""
-        for key, severity in DAMAGE_TO_SEVERITY.items():
+        for key, severity in self.damage_to_severity.items():
             if key in damage_type.lower():
                 return severity
-        return 3
+        return self.default_unknown_severity
     
     def assess_damage(
         self,
