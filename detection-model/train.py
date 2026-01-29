@@ -17,7 +17,7 @@ from ultralytics import YOLO
 
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
-DATASET_CONFIG = ROOT / "detection-model" / "car-damage-detector-1" / "data.yaml"
+DATASET_CONFIG = ROOT / "detection-model" / "dataset-final" / "data.yaml"
 RUNS_DIR = ROOT / "detection-model" / "runs"
 
 
