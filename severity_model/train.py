@@ -75,15 +75,17 @@ def get_device():
 def get_transforms(input_size: int):
     """Get training and validation transforms with strong augmentation."""
     train_transform = transforms.Compose([
-        transforms.RandomResizedCrop(input_size, scale=(0.7, 1.0)),
+        transforms.RandomResizedCrop(input_size, scale=(0.6, 1.0)),  # More aggressive crop
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.1),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.1),
-        transforms.RandomRotation(20),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), shear=10),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.3, hue=0.15),  # Stronger color jitter
+        transforms.RandomRotation(30),  # Increased from 20 to 30 degrees
+        transforms.RandomAffine(degrees=0, translate=(0.15, 0.15), shear=15),  # Increased translation and shear
+        transforms.RandomPerspective(distortion_scale=0.2, p=0.5),  # NEW: viewing angle variations
+        transforms.RandomApply([transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0))], p=0.3),  # blur for generalization
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
+        transforms.RandomErasing(p=0.3, scale=(0.02, 0.2)),  # Increased from 0.2 to 0.3
     ])
     
     val_transform = transforms.Compose([
