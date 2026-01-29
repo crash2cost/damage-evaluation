@@ -181,42 +181,65 @@ class Crash2CostPipeline:
             self.detection_model = None
     
     def _load_severity_model(self, weights_path: str):
-        """Load severity classification model."""
+        """Load severity classification model (supports ResNet and EfficientNet)."""
         self.severity_model = None
         self.severity_classes = []
-        
+
         if not Path(weights_path).exists():
             print(f"⚠️ Severity weights not found: {weights_path}")
             print("   Run: python severity_model/train.py")
             return
-        
+
         try:
             checkpoint = torch.load(weights_path, map_location=self.device)
             self.severity_classes = checkpoint["classes"]
-            
+
             # Handle both old and new checkpoint formats
             config = checkpoint.get("config", checkpoint.get("hyperparameters", {}))
-            
+
             num_classes = len(self.severity_classes)
             backbone = config.get("backbone", "resnet18")
             dropout_rate = config.get("dropout_rate", 0.3)
-            
-            if backbone == "resnet18":
-                model = models.resnet18(weights=None)
-            else:
+
+            # Create model based on backbone type
+            if backbone.startswith("efficientnet"):
+                # EfficientNet models
+                if backbone == "efficientnet_b0":
+                    model = models.efficientnet_b0(weights=None)
+                elif backbone == "efficientnet_b1":
+                    model = models.efficientnet_b1(weights=None)
+                elif backbone == "efficientnet_b2":
+                    model = models.efficientnet_b2(weights=None)
+                else:
+                    model = models.efficientnet_b0(weights=None)
+
+                # EfficientNet uses classifier instead of fc
+                in_features = model.classifier[1].in_features
+                model.classifier = nn.Sequential(
+                    nn.Dropout(p=dropout_rate),
+                    nn.Linear(in_features, num_classes),
+                )
+            elif backbone == "resnet50":
                 model = models.resnet50(weights=None)
-            
-            # Use Sequential fc layer (standard format from new training script)
-            model.fc = nn.Sequential(
-                nn.Dropout(p=dropout_rate),
-                nn.Linear(model.fc.in_features, num_classes),
-            )
+                model.fc = nn.Sequential(
+                    nn.Dropout(p=dropout_rate),
+                    nn.Linear(model.fc.in_features, num_classes),
+                )
+            else:
+                # Default to ResNet18
+                model = models.resnet18(weights=None)
+                model.fc = nn.Sequential(
+                    nn.Dropout(p=dropout_rate),
+                    nn.Linear(model.fc.in_features, num_classes),
+                )
+
             model.load_state_dict(checkpoint["model_state_dict"])
             model.to(self.device)
             model.eval()
-            
+
             self.severity_model = model
             print(f"✅ Loaded severity model: {weights_path}")
+            print(f"   Backbone: {backbone}")
             print(f"   Classes: {self.severity_classes}")
         except Exception as e:
             print(f"❌ Failed to load severity model: {e}")
