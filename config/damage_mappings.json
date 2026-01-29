@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "description": "Configuration file for damage type to part and severity mappings",
+  "last_updated": "2026-01-29",
+
+  "damage_to_part": {
+    "_comment": "Maps damage classification types to car part names for cost estimation",
+
+    "bumper_dent": "Front Bumper",
+    "bumper_scratch": "Front Bumper",
+    "rear_bumper_dent": "Rear Bumper",
+    "rear_bumper_scratch": "Rear Bumper",
+
+    "door_dent": "Front Door",
+    "door_scratch": "Front Door",
+
+    "hood_dent": "Hood",
+    "hood_scratch": "Hood",
+
+    "fender_dent": "Fender",
+    "fender_scratch": "Fender",
+
+    "trunk_dent": "Trunk Lid",
+    "trunk_scratch": "Trunk Lid",
+
+    "roof_damage": "Roof",
+
+    "glass_shatter": "Windshield",
+    "head_lamp": "Headlight",
+    "tail_lamp": "Tail Light"
+  },
+
+  "damage_to_severity": {
+    "_comment": "Maps damage keywords to severity levels (1-5 scale). Used when severity is not encoded in class name.",
+
+    "scratch": 2,
+    "minor_scratch": 1,
+    "moderate_scratch": 2,
+    "major_scratch": 3,
+
+    "dent": 3,
+    "minor_dent": 2,
+    "moderate_dent": 3,
+    "major_dent": 4,
+
+    "shatter": 5,
+    "crack": 4,
+
+    "lamp": 3,
+    "damage": 3
+  },
+
+  "severity_descriptions": {
+    "1": "Minimal damage - cosmetic only",
+    "2": "Minor damage - small repairs needed",
+    "3": "Moderate damage - significant repairs required",
+    "4": "Major damage - extensive repairs or replacement consideration",
+    "5": "Critical damage - replacement required"
+  },
+
+  "default_mappings": {
+    "unknown_part": "Front Bumper",
+    "unknown_severity": 3,
+    "fallback_cost": 1000
+  }
+}
