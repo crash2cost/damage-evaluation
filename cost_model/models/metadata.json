@@ -1,19 +1,11 @@
 {
+  "version": 2,
   "best_model": "Random Forest",
   "test_metrics": {
-    "mae": 101.15114805436245,
-    "rmse": 159.3687848486381,
-    "r2": 0.9926694209480416
-  },
-  "train_metrics": {
-    "mae": 100.58465210343995,
-    "rmse": 160.42357920767023,
-    "r2": 0.9930583106141676
-  },
-  "val_metrics": {
-    "mae": 105.60067808737901,
-    "rmse": 172.7107365818632,
-    "r2": 0.9929391354209802
+    "mae": 26.93546459848379,
+    "rmse": 38.025920147368595,
+    "r2": 0.9778067656348952,
+    "mape": 7.505382487277135
   },
   "parts": [
     "Door Handle",
@@ -31,12 +23,25 @@
     "Trunk Lid",
     "Windshield"
   ],
-  "segments": [
-    "Executive",
-    "Family",
-    "Luxury",
-    "Micro",
-    "SUV"
+  "damage_types": [
+    "bumper_dent",
+    "bumper_scratch",
+    "door_dent",
+    "door_scratch",
+    "fender_dent",
+    "fender_scratch",
+    "glass_shatter",
+    "handle_damage",
+    "head_lamp",
+    "hood_dent",
+    "hood_scratch",
+    "mirror_damage",
+    "rear_bumper_dent",
+    "rear_bumper_scratch",
+    "roof_damage",
+    "tail_lamp",
+    "trunk_dent",
+    "trunk_scratch"
   ],
   "severity_range": [
     1,
@@ -44,7 +49,12 @@
   ],
   "feature_names": [
     "Part_Encoded",
-    "Severity",
-    "Segment_Encoded"
-  ]
+    "Damage_Encoded",
+    "Severity"
+  ],
+  "feature_importance": {
+    "Part_Encoded": 0.21213078372059616,
+    "Damage_Encoded": 0.3561701587512887,
+    "Severity": 0.43169905752811516
+  }
 }

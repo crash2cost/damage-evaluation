@@ -1,7 +1,7 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "description": "Configuration file for damage type to part and severity mappings",
-  "last_updated": "2026-01-29",
+  "last_updated": "2026-02-04",
 
   "damage_to_part": {
     "_comment": "Maps damage classification types to car part names for cost estimation",
@@ -13,6 +13,8 @@
 
     "door_dent": "Front Door",
     "door_scratch": "Front Door",
+    "rear_door_dent": "Rear Door",
+    "rear_door_scratch": "Rear Door",
 
     "hood_dent": "Hood",
     "hood_scratch": "Hood",
@@ -27,7 +29,9 @@
 
     "glass_shatter": "Windshield",
     "head_lamp": "Headlight",
-    "tail_lamp": "Tail Light"
+    "tail_lamp": "Tail Light",
+    "mirror_damage": "Side Mirror",
+    "handle_damage": "Door Handle"
   },
 
   "damage_to_severity": {

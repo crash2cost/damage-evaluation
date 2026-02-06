@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Cost Estimation Model Training - Car Repair Cost Prediction
-============================================================
-Uses scikit-learn for regression modeling.
-Compares RandomForest vs GradientBoosting and saves the best model.
-
-Features:
-- Part_Name: Which car part is damaged
+Cost Estimation Model Training - Car Repair Cost Prediction (v2)
+=================================================================
+Improved model that uses:
+- Part_Name: Which car part is damaged (Front Bumper, Hood, etc.)
+- Damage_Type: Type of damage (bumper_dent, door_scratch, etc.)
 - Severity: Damage severity level (1-5)
-- Car_Segment: Vehicle price segment
+
+Removed: Car_Segment (not meaningful for repair cost)
 
 Usage:
     python train.py                                  # Train with defaults
@@ -19,14 +18,19 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder
+
+# =============================================================================
+# Constants
+# =============================================================================
 
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,111 +39,203 @@ MODEL_DIR = ROOT / "cost_model" / "models"
 
 MODEL_DIR.mkdir(exist_ok=True)
 
+# Training defaults
+DEFAULT_RANDOM_STATE = 42
+DEFAULT_TEST_SIZE = 0.2
+
+# Random Forest defaults
+DEFAULT_RF_ESTIMATORS = 200
+DEFAULT_RF_MAX_DEPTH = 15
+DEFAULT_RF_MIN_SAMPLES_SPLIT = 3
+DEFAULT_RF_MIN_SAMPLES_LEAF = 1
+
+# Gradient Boosting defaults
+DEFAULT_GB_ESTIMATORS = 200
+DEFAULT_GB_MAX_DEPTH = 6
+DEFAULT_GB_LEARNING_RATE = 0.1
+DEFAULT_GB_SUBSAMPLE = 0.8
+
+# Cross-validation
+CV_FOLDS = 5
+CV_STD_MULTIPLIER = 2
+
+# Display
+SEPARATOR_WIDTH = 60
+PERCENTAGE_MULTIPLIER = 100
+
+# Severity
+MAX_SEVERITY = 5
+
+# Model version
+MODEL_VERSION = 2
+
 
 @dataclass
 class TrainingConfig:
-    """Training configuration."""
-    data_path: Path = DATA_DIR / "detailed_repair_costs.csv"
-    random_state: int = 42
-    test_size: float = 0.3
-    # Random Forest parameters
-    rf_estimators: int = 200
-    rf_max_depth: int = 20
-    rf_min_samples_split: int = 5
-    rf_min_samples_leaf: int = 2
-    # Gradient Boosting parameters
-    gb_estimators: int = 200
-    gb_max_depth: int = 7
-    gb_learning_rate: float = 0.1
-    gb_subsample: float = 0.8
+    """
+    Training configuration for cost estimation models.
+
+    Attributes:
+        data_path: Path to the training data CSV file.
+        random_state: Random seed for reproducibility.
+        test_size: Proportion of data to use for testing.
+        rf_estimators: Number of trees in Random Forest.
+        rf_max_depth: Maximum depth of Random Forest trees.
+        rf_min_samples_split: Minimum samples required to split RF node.
+        rf_min_samples_leaf: Minimum samples required at RF leaf node.
+        gb_estimators: Number of boosting stages for Gradient Boosting.
+        gb_max_depth: Maximum depth of GB trees.
+        gb_learning_rate: Learning rate for Gradient Boosting.
+        gb_subsample: Subsample ratio for Gradient Boosting.
+    """
+    data_path: Path = DATA_DIR / "repair_costs_v2.csv"
+    random_state: int = DEFAULT_RANDOM_STATE
+    test_size: float = DEFAULT_TEST_SIZE
+    rf_estimators: int = DEFAULT_RF_ESTIMATORS
+    rf_max_depth: int = DEFAULT_RF_MAX_DEPTH
+    rf_min_samples_split: int = DEFAULT_RF_MIN_SAMPLES_SPLIT
+    rf_min_samples_leaf: int = DEFAULT_RF_MIN_SAMPLES_LEAF
+    gb_estimators: int = DEFAULT_GB_ESTIMATORS
+    gb_max_depth: int = DEFAULT_GB_MAX_DEPTH
+    gb_learning_rate: float = DEFAULT_GB_LEARNING_RATE
+    gb_subsample: float = DEFAULT_GB_SUBSAMPLE
 
 
-FEATURE_COLUMNS = ["Part_Encoded", "Severity", "Segment_Encoded"]
+# Feature columns for the model
+FEATURE_COLUMNS: List[str] = ["Part_Encoded", "Damage_Encoded", "Severity"]
+
+# Required columns in training data
+REQUIRED_COLUMNS = {"Part_Name", "Damage_Type", "Severity", "Estimated_Cost"}
 
 
 def load_data(data_path: Path) -> pd.DataFrame:
-    """Load and validate the dataset."""
+    """
+    Load and validate the dataset.
+
+    Args:
+        data_path: Path to the CSV file containing training data.
+
+    Returns:
+        DataFrame with validated training data.
+
+    Raises:
+        ValueError: If required columns are missing from the dataset.
+    """
     df = pd.read_csv(data_path)
-    
-    required = {"Part_Name", "Severity", "Car_Segment", "Estimated_Cost"}
-    missing = required - set(df.columns)
+
+    missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
-    
+
     return df
 
 
-def prepare_features(df: pd.DataFrame):
-    """Prepare features with label encoding."""
+def prepare_features(
+    df: pd.DataFrame
+) -> Tuple[pd.DataFrame, pd.Series, LabelEncoder, LabelEncoder]:
+    """
+    Prepare features with label encoding.
+
+    Args:
+        df: DataFrame with Part_Name, Damage_Type, and Severity columns.
+
+    Returns:
+        Tuple of (features_df, target_series, part_encoder, damage_encoder).
+    """
     part_encoder = LabelEncoder()
-    segment_encoder = LabelEncoder()
-    
+    damage_encoder = LabelEncoder()
+
     df = df.copy()
     df["Part_Encoded"] = part_encoder.fit_transform(df["Part_Name"])
-    df["Segment_Encoded"] = segment_encoder.fit_transform(df["Car_Segment"])
-    
+    df["Damage_Encoded"] = damage_encoder.fit_transform(df["Damage_Type"])
+
     X = df[FEATURE_COLUMNS]
     y = df["Estimated_Cost"]
-    
-    return X, y, part_encoder, segment_encoder
+
+    return X, y, part_encoder, damage_encoder
 
 
-def evaluate_model(model, X, y, set_name: str) -> dict:
-    """Evaluate model and print metrics."""
+def evaluate_model(
+    model: Any,
+    X: pd.DataFrame,
+    y: pd.Series,
+    set_name: str
+) -> Dict[str, float]:
+    """
+    Evaluate model and print metrics.
+
+    Args:
+        model: Trained sklearn model with predict method.
+        X: Feature DataFrame.
+        y: Target Series.
+        set_name: Name of the dataset (e.g., "Train", "Test").
+
+    Returns:
+        Dictionary with MAE, RMSE, R2, and MAPE metrics.
+    """
     y_pred = model.predict(X)
-    
+
     mae = mean_absolute_error(y, y_pred)
     rmse = np.sqrt(mean_squared_error(y, y_pred))
     r2 = r2_score(y, y_pred)
-    
+    mape = np.mean(np.abs((y - y_pred) / y)) * PERCENTAGE_MULTIPLIER
+
     print(f"\n{set_name} Set:")
-    print(f"  MAE:  ₪{mae:.2f}")
-    print(f"  RMSE: ₪{rmse:.2f}")
-    print(f"  R²:   {r2:.4f}")
-    
-    return {"mae": mae, "rmse": rmse, "r2": r2}
+    print(f"  MAE:  ${mae:.2f}")
+    print(f"  RMSE: ${rmse:.2f}")
+    print(f"  MAPE: {mape:.2f}%")
+    print(f"  R2:   {r2:.4f}")
+
+    return {"mae": mae, "rmse": rmse, "r2": r2, "mape": mape}
 
 
-def train(config: TrainingConfig):
+def train(config: TrainingConfig) -> Any:
     """
     Train cost estimation models.
-    
-    Trains both RandomForest and GradientBoosting, saves the best one.
+
+    Trains both RandomForest and GradientBoosting regressors,
+    evaluates their performance, and saves the best one.
+
+    Args:
+        config: Training configuration with all hyperparameters.
+
+    Returns:
+        The best performing model.
     """
-    print(f"\n{'='*60}")
-    print("💰 Cost Estimation Model Training")
-    print(f"{'='*60}")
-    
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
+    print("Cost Estimation Model Training (v2)")
+    print(f"{'=' * SEPARATOR_WIDTH}")
+
     # Load data
     print(f"\nLoading data from: {config.data_path}")
     df = load_data(config.data_path)
     print(f"Total samples: {len(df)}")
-    
+
     # Show data statistics
-    print(f"\nData Statistics:")
-    print(df.describe())
-    
+    print("\nData Statistics:")
+    print(f"  Parts: {df['Part_Name'].nunique()} unique")
+    print(f"  Damage Types: {df['Damage_Type'].nunique()} unique")
+    print(f"  Severity Range: {df['Severity'].min()}-{df['Severity'].max()}")
+    print(f"  Cost Range: ${df['Estimated_Cost'].min():,} - ${df['Estimated_Cost'].max():,}")
+    print(f"  Mean Cost: ${df['Estimated_Cost'].mean():,.0f}")
+
     # Prepare features
-    X, y, part_encoder, segment_encoder = prepare_features(df)
-    
+    X, y, part_encoder, damage_encoder = prepare_features(df)
+
     # Split data
-    X_train, X_temp, y_train, y_temp = train_test_split(
+    X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=config.test_size, random_state=config.random_state
     )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp, test_size=0.5, random_state=config.random_state
-    )
-    
-    print(f"\nDataset Split:")
+
+    print("\nDataset Split:")
     print(f"  Train: {len(X_train)}")
-    print(f"  Val:   {len(X_val)}")
     print(f"  Test:  {len(X_test)}")
-    
+
     # Train Random Forest
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
     print("Training Random Forest...")
-    print(f"{'='*60}")
-    
+    print(f"{'=' * SEPARATOR_WIDTH}")
+
     rf_model = RandomForestRegressor(
         n_estimators=config.rf_estimators,
         max_depth=config.rf_max_depth,
@@ -147,35 +243,39 @@ def train(config: TrainingConfig):
         min_samples_leaf=config.rf_min_samples_leaf,
         random_state=config.random_state,
         n_jobs=-1,
-        verbose=1,
     )
     rf_model.fit(X_train, y_train)
-    
+
     rf_train = evaluate_model(rf_model, X_train, y_train, "Train")
-    rf_val = evaluate_model(rf_model, X_val, y_val, "Validation")
     rf_test = evaluate_model(rf_model, X_test, y_test, "Test")
-    
+
+    # Cross-validation
+    cv_scores = cross_val_score(rf_model, X, y, cv=CV_FOLDS, scoring="neg_mean_absolute_error")
+    print(f"\n  CV MAE: ${-cv_scores.mean():.2f} (+/- ${cv_scores.std() * CV_STD_MULTIPLIER:.2f})")
+
     # Train Gradient Boosting
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
     print("Training Gradient Boosting...")
-    print(f"{'='*60}")
-    
+    print(f"{'=' * SEPARATOR_WIDTH}")
+
     gb_model = GradientBoostingRegressor(
         n_estimators=config.gb_estimators,
         max_depth=config.gb_max_depth,
         learning_rate=config.gb_learning_rate,
         subsample=config.gb_subsample,
         random_state=config.random_state,
-        verbose=1,
     )
     gb_model.fit(X_train, y_train)
-    
+
     gb_train = evaluate_model(gb_model, X_train, y_train, "Train")
-    gb_val = evaluate_model(gb_model, X_val, y_val, "Validation")
     gb_test = evaluate_model(gb_model, X_test, y_test, "Test")
-    
-    # Select best model based on validation MAE
-    if rf_val["mae"] < gb_val["mae"]:
+
+    # Cross-validation
+    cv_scores = cross_val_score(gb_model, X, y, cv=CV_FOLDS, scoring="neg_mean_absolute_error")
+    print(f"\n  CV MAE: ${-cv_scores.mean():.2f} (+/- ${cv_scores.std() * CV_STD_MULTIPLIER:.2f})")
+
+    # Select best model based on test MAE
+    if rf_test["mae"] < gb_test["mae"]:
         best_model = rf_model
         best_name = "Random Forest"
         best_metrics = rf_test
@@ -187,89 +287,108 @@ def train(config: TrainingConfig):
         best_metrics = gb_test
         other_model = rf_model
         other_name = "random_forest"
-    
-    print(f"\n{'='*60}")
-    print(f"✅ Best Model: {best_name}")
-    print(f"   Test MAE: ₪{best_metrics['mae']:.2f}")
-    print(f"   Test R²:  {best_metrics['r2']:.4f}")
-    print(f"{'='*60}")
-    
+
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
+    print(f"Best Model: {best_name}")
+    print(f"   Test MAE:  ${best_metrics['mae']:.2f}")
+    print(f"   Test MAPE: {best_metrics['mape']:.2f}%")
+    print(f"   Test R2:   {best_metrics['r2']:.4f}")
+    print(f"{'=' * SEPARATOR_WIDTH}")
+
+    # Feature importance
+    print("\nFeature Importance:")
+    for name, importance in zip(FEATURE_COLUMNS, best_model.feature_importances_):
+        print(f"  {name}: {importance:.3f}")
+
     # Save models and encoders
     joblib.dump(best_model, MODEL_DIR / "cost_estimator.pkl")
     joblib.dump(other_model, MODEL_DIR / f"cost_estimator_{other_name}.pkl")
     joblib.dump(part_encoder, MODEL_DIR / "part_encoder.pkl")
-    joblib.dump(segment_encoder, MODEL_DIR / "segment_encoder.pkl")
-    
+    joblib.dump(damage_encoder, MODEL_DIR / "damage_encoder.pkl")
+
     # Save metadata
     metadata = {
+        "version": MODEL_VERSION,
         "best_model": best_name,
         "test_metrics": best_metrics,
         "parts": part_encoder.classes_.tolist(),
-        "segments": segment_encoder.classes_.tolist(),
+        "damage_types": damage_encoder.classes_.tolist(),
         "severity_range": [int(df["Severity"].min()), int(df["Severity"].max())],
         "feature_names": FEATURE_COLUMNS,
+        "feature_importance": dict(zip(FEATURE_COLUMNS, [float(x) for x in best_model.feature_importances_])),
     }
-    with open(MODEL_DIR / "metadata.json", "w") as f:
+    with open(MODEL_DIR / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
-    
-    print(f"\n✅ Models saved to: {MODEL_DIR}")
-    
+
+    print(f"\nModels saved to: {MODEL_DIR}")
+
     # Show example predictions
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
     print("Example Predictions:")
-    print(f"{'='*60}")
-    
+    print(f"{'=' * SEPARATOR_WIDTH}")
+
     examples = [
-        ("Front Bumper", 3, "Family"),
-        ("Headlight", 5, "Luxury"),
-        ("Front Door", 2, "Micro"),
-        ("Hood", 4, "SUV"),
+        ("Front Bumper", "bumper_dent", 3),
+        ("Front Door", "door_dent", 4),
+        ("Hood", "hood_scratch", 2),
+        ("Windshield", "glass_shatter", 5),
+        ("Headlight", "head_lamp", 3),
     ]
-    
-    for part, severity, segment in examples:
+
+    for part, damage_type, severity in examples:
         try:
             part_enc = part_encoder.transform([part])[0]
-            seg_enc = segment_encoder.transform([segment])[0]
-            cost = best_model.predict([[part_enc, severity, seg_enc]])[0]
-            print(f"{part} (Severity {severity}, {segment}): ₪{cost:,.0f}")
-        except ValueError:
-            print(f"{part}: Not in training data")
-    
+            damage_enc = damage_encoder.transform([damage_type])[0]
+            cost = best_model.predict([[part_enc, damage_enc, severity]])[0]
+            print(f"{part} - {damage_type} (Severity {severity}): ${cost:,.0f}")
+        except ValueError as e:
+            print(f"{part}: Not in training data - {e}")
+
     return best_model
 
 
-def predict(part_name: str, severity: int, car_segment: str):
-    """Predict repair cost for given inputs."""
+def predict(part_name: str, damage_type: str, severity: int) -> float:
+    """
+    Predict repair cost for given inputs.
+
+    Args:
+        part_name: Name of the damaged car part.
+        damage_type: Type of damage (e.g., bumper_dent).
+        severity: Damage severity level (1-5).
+
+    Returns:
+        Estimated repair cost.
+    """
     model = joblib.load(MODEL_DIR / "cost_estimator.pkl")
     part_encoder = joblib.load(MODEL_DIR / "part_encoder.pkl")
-    segment_encoder = joblib.load(MODEL_DIR / "segment_encoder.pkl")
-    
+    damage_encoder = joblib.load(MODEL_DIR / "damage_encoder.pkl")
+
     part_enc = part_encoder.transform([part_name])[0]
-    seg_enc = segment_encoder.transform([car_segment])[0]
-    
-    cost = model.predict([[part_enc, severity, seg_enc]])[0]
-    
+    damage_enc = damage_encoder.transform([damage_type])[0]
+
+    cost = model.predict([[part_enc, damage_enc, severity]])[0]
+
     print(f"Part: {part_name}")
-    print(f"Severity: {severity}/5")
-    print(f"Car Segment: {car_segment}")
-    print(f"Estimated Cost: ₪{cost:,.0f}")
-    
-    return cost
+    print(f"Damage Type: {damage_type}")
+    print(f"Severity: {severity}/{MAX_SEVERITY}")
+    print(f"Estimated Cost: ${cost:,.0f}")
+
+    return float(cost)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Cost Estimation Training")
-    parser.add_argument("--data-path", type=Path, default=DATA_DIR / "detailed_repair_costs.csv",
-                       help="Path to training data CSV")
-    parser.add_argument("--random-state", type=int, default=42, help="Random seed")
-    parser.add_argument("--test-size", type=float, default=0.3, help="Test split ratio")
-    
+    parser = argparse.ArgumentParser(description="Cost Estimation Training v2")
+    parser.add_argument("--data-path", type=Path, default=DATA_DIR / "repair_costs_v2.csv",
+                        help="Path to training data CSV")
+    parser.add_argument("--random-state", type=int, default=DEFAULT_RANDOM_STATE, help="Random seed")
+    parser.add_argument("--test-size", type=float, default=DEFAULT_TEST_SIZE, help="Test split ratio")
+
     args = parser.parse_args()
-    
+
     config = TrainingConfig(
         data_path=args.data_path,
         random_state=args.random_state,
         test_size=args.test_size,
     )
-    
+
     train(config)
