@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 def test_detection_model():
     """Test YOLOv8 detection model."""
-    print("🔍 Testing Detection Model...")
+    print(" Testing Detection Model...")
     
     try:
         from ultralytics import YOLO
@@ -22,26 +22,26 @@ def test_detection_model():
         
         if weights.exists():
             model = YOLO(str(weights))
-            print(f"   ✅ Loaded: {weights}")
+            print(f"    Loaded: {weights}")
         else:
             model = YOLO("yolov8n.pt")  # Fallback to pretrained
-            print(f"   ⚠️ Using pretrained YOLOv8n (no custom weights found)")
+            print(f"    Using pretrained YOLOv8n (no custom weights found)")
         
         # Quick inference test
         import numpy as np
         from PIL import Image
         test_img = Image.fromarray(np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8))
         results = model.predict(test_img, verbose=False)
-        print("   ✅ Inference works!")
+        print("    Inference works!")
         return True
     except Exception as e:
-        print(f"   ❌ Error: {e}")
+        print(f"    Error: {e}")
         return False
 
 
 def test_severity_model():
     """Test severity classification model."""
-    print("\n🧠 Testing Severity Model...")
+    print("\n Testing Severity Model...")
     
     try:
         import torch
@@ -61,13 +61,13 @@ def test_severity_model():
                 break
         
         if weights is None:
-            print(f"   ⚠️ No weights found")
-            print("   ⚠️ Train first with: python severity_model/train.py")
+            print(f"    No weights found")
+            print("    Train first with: python severity_model/train.py")
             return False
         
         checkpoint = torch.load(weights, map_location="cpu")
         classes = checkpoint["classes"]
-        print(f"   ✅ Loaded weights with {len(classes)} classes: {classes}")
+        print(f"    Loaded weights with {len(classes)} classes: {classes}")
         
         # Build model - handle different checkpoint formats
         model = models.resnet18(weights=None)
@@ -88,16 +88,16 @@ def test_severity_model():
         test_input = torch.randn(1, 3, 224, 224)
         with torch.no_grad():
             output = model(test_input)
-        print(f"   ✅ Inference works! Output shape: {output.shape}")
+        print(f"    Inference works! Output shape: {output.shape}")
         return True
     except Exception as e:
-        print(f"   ❌ Error: {e}")
+        print(f"    Error: {e}")
         return False
 
 
 def test_cost_model():
     """Test cost estimation model."""
-    print("\n💰 Testing Cost Model...")
+    print("\n Testing Cost Model...")
     
     try:
         import joblib
@@ -107,47 +107,47 @@ def test_cost_model():
         seg_enc_path = ROOT / "cost_model" / "models" / "segment_encoder.pkl"
         
         if not model_path.exists():
-            print(f"   ⚠️ No model found at {model_path}")
-            print("   ⚠️ Train first with: python cost_model/train.py")
+            print(f"    No model found at {model_path}")
+            print("    Train first with: python cost_model/train.py")
             return False
         
         model = joblib.load(model_path)
         part_encoder = joblib.load(part_enc_path)
         segment_encoder = joblib.load(seg_enc_path)
         
-        print(f"   ✅ Loaded model: {type(model).__name__}")
-        print(f"   ✅ Parts: {list(part_encoder.classes_)}")
-        print(f"   ✅ Segments: {list(segment_encoder.classes_)}")
+        print(f"    Loaded model: {type(model).__name__}")
+        print(f"    Parts: {list(part_encoder.classes_)}")
+        print(f"    Segments: {list(segment_encoder.classes_)}")
         
         # Quick prediction test
         part_enc = part_encoder.transform(["Front Bumper"])[0]
         seg_enc = segment_encoder.transform(["Family"])[0]
         cost = model.predict([[part_enc, 3, seg_enc]])[0]
-        print(f"   ✅ Test prediction: Front Bumper, Severity 3, Family = ₪{cost:,.0f}")
+        print(f"    Test prediction: Front Bumper, Severity 3, Family = ₪{cost:,.0f}")
         return True
     except Exception as e:
-        print(f"   ❌ Error: {e}")
+        print(f"    Error: {e}")
         return False
 
 
 def test_pipeline():
     """Test full pipeline."""
-    print("\n🚗 Testing Full Pipeline...")
+    print("\n Testing Full Pipeline...")
     
     try:
         from pipeline import Crash2CostPipeline
         
         pipeline = Crash2CostPipeline()
-        print("   ✅ Pipeline initialized successfully!")
+        print("    Pipeline initialized successfully!")
         return True
     except Exception as e:
-        print(f"   ❌ Error: {e}")
+        print(f"    Error: {e}")
         return False
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🧪 Crash2Cost Model Tests")
+    print(" Crash2Cost Model Tests")
     print("=" * 60)
     
     results = {
@@ -158,12 +158,12 @@ if __name__ == "__main__":
     }
     
     print("\n" + "=" * 60)
-    print("📋 Summary")
+    print(" Summary")
     print("=" * 60)
     
     for name, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = " PASS" if passed else " FAIL"
         print(f"   {name}: {status}")
     
     all_passed = all(results.values())
-    print(f"\n{'✅ All tests passed!' if all_passed else '⚠️ Some tests failed'}")
+    print(f"\n{' All tests passed!' if all_passed else ' Some tests failed'}")
