@@ -1,9 +1,9 @@
 # Crash2Cost - AI-Powered Vehicle Damage Cost Estimation
 
-## 🎯 Overview
+##  Overview
 Automated system that analyzes car damage images and estimates repair costs using computer vision and machine learning.
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 machines/
@@ -22,24 +22,24 @@ machines/
     └── models/             # Saved models & encoders
 ```
 
-## ✅ System Components
+##  System Components
 
-### 1. **Damage Detection Model** 🔍
+### 1. **Damage Detection Model** 
 - **Architecture**: YOLOv8 (via Ultralytics library)
 - **Output**: Bounding boxes around damage regions
 - **Training**: `python detection-model/train.py`
 
-### 2. **Severity Classification Model** 🧠
+### 2. **Severity Classification Model** 
 - **Architecture**: ResNet18/50 (torchvision pretrained)
 - **Classes**: bumper_dent, bumper_scratch, door_dent, door_scratch, glass_shatter, head_lamp, tail_lamp
 - **Training**: `python severity_model/train.py`
 
-### 3. **Cost Estimation Model** 💰
+### 3. **Cost Estimation Model** 
 - **Algorithm**: Random Forest or Gradient Boosting (sklearn)
 - **Features**: Part type, Severity level (1-5), Car segment
 - **Training**: `python cost_model/train.py`
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Installation
 ```bash
@@ -72,13 +72,13 @@ python pipeline.py --image path/to/damage.jpg --car-segment Family
 
 ### Example Output
 ```
-🚗 Crash2Cost - Car Damage Assessment System
+ Crash2Cost - Car Damage Assessment System
 ============================================================
 
-📋 DAMAGE ASSESSMENT REPORT
+ DAMAGE ASSESSMENT REPORT
 ============================================================
 
-🔍 Damage #1
+ Damage #1
    Type: bumper_dent
    Confidence: 87.5%
    Severity: 3/5
@@ -86,12 +86,12 @@ python pipeline.py --image path/to/damage.jpg --car-segment Family
    Estimated Cost: ₪1,250
 
 ============================================================
-💰 TOTAL ESTIMATED COST: ₪1,250
-⏱️  Inference Time: 145ms
+ TOTAL ESTIMATED COST: ₪1,250
+⏱  Inference Time: 145ms
 ============================================================
 ```
 
-## 📊 Libraries Used
+##  Libraries Used
 
 | Component | Library | Purpose |
 |-----------|---------|---------|
@@ -101,7 +101,7 @@ python pipeline.py --image path/to/damage.jpg --car-segment Family
 | Data Loading | `torch.utils.data` | Efficient data loading & augmentation |
 | Image Processing | `PIL`, `torchvision.transforms` | Image preprocessing |
 
-## 🔧 Training Options
+##  Training Options
 
 ### Detection Model
 ```bash
@@ -132,7 +132,7 @@ python cost_model/train.py \
   --test-size 0.3
 ```
 
-## 📈 Expected Performance
+##  Expected Performance
 
 | Model | Metric | Value |
 |-------|--------|-------|
@@ -141,14 +141,14 @@ python cost_model/train.py \
 | Cost | MAE | ~₪100 |
 | Cost | R² | ~0.99 |
 
-## 🖥️ Device Support
+##  Device Support
 
 All training scripts auto-detect the best available device:
 - **Apple Silicon**: Uses MPS (Metal Performance Shaders)
 - **NVIDIA GPU**: Uses CUDA
 - **CPU**: Fallback option
 
-## 📝 Notes
+##  Notes
 
 - The pipeline gracefully handles missing models with fallback logic
 - All training scripts support early stopping to prevent overfitting

@@ -95,7 +95,7 @@ def augment_dataset(dry_run: bool = True, target_min: int = 200):
     print("=" * 70)
 
     # Count existing images
-    print("\n📊 Current severity dataset distribution:")
+    print("\n Current severity dataset distribution:")
     existing = count_existing_images(SEVERITY_DIR)
     for class_name in CLASS_MAPPING.values():
         counts = existing.get(class_name, {"train": 0, "val": 0, "test": 0})
@@ -103,14 +103,14 @@ def augment_dataset(dry_run: bool = True, target_min: int = 200):
         print(f"   {class_name:20} train={counts['train']:3}  val={counts['val']:3}  test={counts['test']:3}  total={total}")
 
     # Get multiclass images
-    print("\n📦 Available images in multiclass dataset:")
+    print("\n Available images in multiclass dataset:")
     multiclass_images = get_multiclass_images_by_class(MULTICLASS_DIR)
     for class_name, images in sorted(multiclass_images.items()):
         print(f"   {class_name:20} {len(images):4} images")
 
     # Calculate what to copy
-    print(f"\n🎯 Target: at least {target_min} training images per class")
-    print("\n📋 Augmentation plan:")
+    print(f"\n Target: at least {target_min} training images per class")
+    print("\n Augmentation plan:")
 
     to_copy = {}
     for class_name in CLASS_MAPPING.values():
@@ -134,16 +134,16 @@ def augment_dataset(dry_run: bool = True, target_min: int = 200):
             # Randomly select images to add
             selected = random.sample(new_images, to_add) if len(new_images) > to_add else new_images[:to_add]
             to_copy[class_name] = selected
-            print(f"   {class_name:20} +{to_add:3} images ({current_train} → {current_train + to_add})")
+            print(f"   {class_name:20} +{to_add:3} images ({current_train}  {current_train + to_add})")
         else:
             print(f"   {class_name:20} +{0:3} images (already has {current_train})")
 
     # Execute copy
     if dry_run:
-        print("\n⚠️  DRY RUN - no files copied")
+        print("\n  DRY RUN - no files copied")
         print("   Run without --dry-run to actually copy files")
     else:
-        print("\n📁 Copying files...")
+        print("\n Copying files...")
         total_copied = 0
         for class_name, images in to_copy.items():
             dest_dir = SEVERITY_DIR / "train" / class_name
@@ -154,13 +154,13 @@ def augment_dataset(dry_run: bool = True, target_min: int = 200):
                 shutil.copy2(img_path, dest_path)
                 total_copied += 1
 
-            print(f"   ✅ {class_name}: copied {len(images)} images")
+            print(f"    {class_name}: copied {len(images)} images")
 
-        print(f"\n✅ Total: {total_copied} images copied")
+        print(f"\n Total: {total_copied} images copied")
 
     # Show final distribution
     if not dry_run:
-        print("\n📊 Updated severity dataset distribution:")
+        print("\n Updated severity dataset distribution:")
         updated = count_existing_images(SEVERITY_DIR)
         for class_name in CLASS_MAPPING.values():
             counts = updated.get(class_name, {"train": 0, "val": 0, "test": 0})

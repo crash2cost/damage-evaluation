@@ -1,36 +1,36 @@
-# 🏗️ מימוש YOLO מאפס - מדריך מפורט
+#  מימוש YOLO מאפס - מדריך מפורט
 
 ## מה בנינו?
 
 בנינו מערכת **מלאה** של YOLO מאפס עם PyTorch. זה כולל:
 
 ### 1. **custom_yolo.py** - ארכיטקטורת המודל
-- ✅ ConvBlock - בלוק קונבולוציה בסיסי
-- ✅ Bottleneck - בלוק עם skip connections
-- ✅ C2f - CSP Bottleneck (הליבה של YOLOv8)
-- ✅ SPPF - Spatial Pyramid Pooling
-- ✅ YOLOBackbone - רשת עמוקה לחילוץ features
-- ✅ YOLONeck - FPN + PAN לאיחוד multi-scale features
-- ✅ DetectionHead - ראש זיהוי לתיבות חוגרות וקלאסים
-- ✅ CustomYOLO - המודל השלם
+-  ConvBlock - בלוק קונבולוציה בסיסי
+-  Bottleneck - בלוק עם skip connections
+-  C2f - CSP Bottleneck (הליבה של YOLOv8)
+-  SPPF - Spatial Pyramid Pooling
+-  YOLOBackbone - רשת עמוקה לחילוץ features
+-  YOLONeck - FPN + PAN לאיחוד multi-scale features
+-  DetectionHead - ראש זיהוי לתיבות חוגרות וקלאסים
+-  CustomYOLO - המודל השלם
 
 ### 2. **custom_loss.py** - פונקציית Loss
-- ✅ Box Loss - עבור bounding boxes
-- ✅ Classification Loss - עבור קלאסים
-- ✅ DFL Loss - Distribution Focal Loss
-- ✅ IoU calculation - חישוב intersection over union
+-  Box Loss - עבור bounding boxes
+-  Classification Loss - עבור קלאסים
+-  DFL Loss - Distribution Focal Loss
+-  IoU calculation - חישוב intersection over union
 
 ### 3. **custom_train.py** - Training Loop
-- ✅ YOLODataset - טעינת תמונות ותיוגים
-- ✅ YOLOTrainer - מחלקת אימון מלאה
-- ✅ Training loop - לולאת אימון שלמה
-- ✅ Validation - בדיקה על validation set
-- ✅ Checkpointing - שמירת מודלים
-- ✅ Learning rate scheduling
+-  YOLODataset - טעינת תמונות ותיוגים
+-  YOLOTrainer - מחלקת אימון מלאה
+-  Training loop - לולאת אימון שלמה
+-  Validation - בדיקה על validation set
+-  Checkpointing - שמירת מודלים
+-  Learning rate scheduling
 
 ---
 
-## 📂 מבנה הקבצים
+##  מבנה הקבצים
 
 ```
 detection-model/src/
@@ -43,7 +43,7 @@ detection-model/src/
 
 ---
 
-## 🎓 הסבר מפורט על הארכיטקטורה
+##  הסבר מפורט על הארכיטקטורה
 
 ### ConvBlock - הבלוק הבסיסי
 
@@ -194,7 +194,7 @@ class DetectionHead(nn.Module):
 
 ---
 
-## 🔄 איך זה עובד ביחד?
+##  איך זה עובד ביחד?
 
 ```
 Input Image (640×640×3)
@@ -214,7 +214,7 @@ Input Image (640×640×3)
 
 ---
 
-## 💾 טעינת Pretrained Weights
+##  טעינת Pretrained Weights
 
 ```python
 def load_pretrained_weights(self, pretrained_model_path):
@@ -244,7 +244,7 @@ def load_pretrained_weights(self, pretrained_model_path):
 
 ---
 
-## 📊 Loss Function
+##  Loss Function
 
 ```python
 class YOLOLoss(nn.Module):
@@ -276,7 +276,7 @@ class YOLOLoss(nn.Module):
 
 ---
 
-## 🏃 Training Loop
+##  Training Loop
 
 ```python
 class YOLOTrainer:
@@ -316,7 +316,7 @@ class YOLOTrainer:
 
 ---
 
-## 🚀 איך להריץ?
+##  איך להריץ?
 
 ### Option 1: בדיקת המודל
 ```bash
@@ -325,9 +325,9 @@ python3 custom_yolo.py
 ```
 
 זה יבדוק:
-- ✅ המודל נבנה בהצלחה
-- ✅ Forward pass עובד
-- ✅ גדלי פלט נכונים
+-  המודל נבנה בהצלחה
+-  Forward pass עובד
+-  גדלי פלט נכונים
 
 ### Option 2: בדיקת Loss
 ```bash
@@ -335,8 +335,8 @@ python3 custom_loss.py
 ```
 
 זה יבדוק:
-- ✅ Loss מחושב נכון
-- ✅ כל הרכיבים עובדים
+-  Loss מחושב נכון
+-  כל הרכיבים עובדים
 
 ### Option 3: אימון מלא!
 ```bash
@@ -357,24 +357,24 @@ python3 custom_train.py \
 
 ---
 
-## 🎯 מה בנינו בדיוק?
+##  מה בנינו בדיוק?
 
 ### שכבות שמימשת בעצמך:
-1. ✅ ConvBlock - קונבולוציה + נורמליזציה + אקטיבציה
-2. ✅ Bottleneck - בלוק עם residual connection
-3. ✅ C2f - CSP Bottleneck (ליבת YOLOv8)
-4. ✅ SPPF - Spatial Pyramid Pooling
-5. ✅ YOLOBackbone - רשת עמוקה 5 שלבים
-6. ✅ YOLONeck - FPN + PAN
-7. ✅ DetectionHead - ראש זיהוי dual (bbox + class)
+1.  ConvBlock - קונבולוציה + נורמליזציה + אקטיבציה
+2.  Bottleneck - בלוק עם residual connection
+3.  C2f - CSP Bottleneck (ליבת YOLOv8)
+4.  SPPF - Spatial Pyramid Pooling
+5.  YOLOBackbone - רשת עמוקה 5 שלבים
+6.  YOLONeck - FPN + PAN
+7.  DetectionHead - ראש זיהוי dual (bbox + class)
 
 ### תהליכים שמימשת בעצמך:
-1. ✅ Loss calculation - חישוב שגיאה
-2. ✅ Training loop - לולאת אימון
-3. ✅ Validation - בדיקה
-4. ✅ Learning rate scheduling
-5. ✅ Checkpointing - שמירת מודלים
-6. ✅ Data loading - טעינת נתונים
+1.  Loss calculation - חישוב שגיאה
+2.  Training loop - לולאת אימון
+3.  Validation - בדיקה
+4.  Learning rate scheduling
+5.  Checkpointing - שמירת מודלים
+6.  Data loading - טעינת נתונים
 
 ---
 
@@ -386,7 +386,7 @@ from ultralytics import YOLO
 model = YOLO('yolov8n.pt')
 model.train(data='data.yaml', epochs=100)
 ```
-❌ קופסה שחורה - לא רואים מה קורה פנימה
+ קופסה שחורה - לא רואים מה קורה פנימה
 
 ### הגישה החדשה (custom_train.py):
 ```python
@@ -400,11 +400,11 @@ for epoch in range(epochs):
     loss.backward()                 ← אתה מריץ!
     optimizer.step()                ← אתה מעדכן!
 ```
-✅ שליטה מלאה - רואים ומממשים הכל!
+ שליטה מלאה - רואים ומממשים הכל!
 
 ---
 
-## 📈 מה עושים עכשיו?
+##  מה עושים עכשיו?
 
 1. **בדוק שהמודל עובד:**
 ```bash
@@ -428,22 +428,22 @@ python3 custom_train.py --data ../dataset/data.yaml --epochs 100 --batch-size 8 
 
 ---
 
-## ✅ סיכום
+##  סיכום
 
 **מה בנית:**
-- ✅ ארכיטקטורה מלאה של YOLO מאפס
-- ✅ כל השכבות ממומשות ידנית
-- ✅ Loss function מותאם אישית
-- ✅ Training loop מלא
-- ✅ שימוש ב-PyTorch building blocks בלבד
+-  ארכיטקטורה מלאה של YOLO מאפס
+-  כל השכבות ממומשות ידנית
+-  Loss function מותאם אישית
+-  Training loop מלא
+-  שימוש ב-PyTorch building blocks בלבד
 
 **מה מותר:**
-- ✅ nn.Conv2d, nn.BatchNorm2d (building blocks)
-- ✅ טעינת pretrained weights כנקודת התחלה
-- ✅ שימוש ב-PyTorch optimizers
+-  nn.Conv2d, nn.BatchNorm2d (building blocks)
+-  טעינת pretrained weights כנקודת התחלה
+-  שימוש ב-PyTorch optimizers
 
 **מה אסור:**
-- ❌ YOLO מוכן מ-ultralytics ישירות
-- ❌ model.train() - קופסה שחורה
+-  YOLO מוכן מ-ultralytics ישירות
+-  model.train() - קופסה שחורה
 
-**זה בדיוק מה שהמרצה ביקש!** 🎉
+**זה בדיוק מה שהמרצה ביקש!** 

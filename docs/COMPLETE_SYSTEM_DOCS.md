@@ -1,10 +1,10 @@
 # Crash2Cost - Complete System Documentation
 
-## 🎯 Overview
+##  Overview
 
 Crash2Cost is an end-to-end AI-powered system for automated car damage assessment and repair cost estimation. The system combines three machine learning models to provide accurate damage detection, classification, and cost prediction.
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -43,18 +43,18 @@ Crash2Cost is an end-to-end AI-powered system for automated car damage assessmen
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📦 Components
+##  Components
 
 ### 1. Custom YOLO Detection Model
 
 **Location**: `detection-model/`
 
 **Key Features**:
-- ✅ Built completely from scratch using PyTorch primitives (no pre-built YOLO)
-- ✅ YOLOv8-nano architecture (3M parameters)
-- ✅ Custom training with data augmentation
-- ✅ 100 epochs trained on 58 images
-- ✅ Final validation loss: 0.0508
+-  Built completely from scratch using PyTorch primitives (no pre-built YOLO)
+-  YOLOv8-nano architecture (3M parameters)
+-  Custom training with data augmentation
+-  100 epochs trained on 58 images
+-  Final validation loss: 0.0508
 
 **Files**:
 - `src/custom_yolo.py` - Full YOLO architecture (ConvBlock, C2fBlock, SPPF, Backbone, Neck, Head)
@@ -98,7 +98,7 @@ Crash2Cost is an end-to-end AI-powered system for automated car damage assessmen
 - `models/part_encoder.pkl` - Label encoder for parts
 - `models/segment_encoder.pkl` - Label encoder for segments
 
-## 🚀 Usage
+##  Usage
 
 ### Quick Start
 
@@ -143,38 +143,38 @@ python crash2cost_custom.py --image fiat_scratch.jpg --severity 1 --car-segment 
 ### Output Example
 
 ```
-🚗 Crash2Cost - Complete Damage Assessment System (Custom YOLO)
+ Crash2Cost - Complete Damage Assessment System (Custom YOLO)
 ======================================================================
 Loading models...
   [1/3] Loading custom YOLO detector...
-  ✓ Loaded custom YOLO model
+   Loaded custom YOLO model
   [2/3] Loading damage classifier...
   [3/3] Loading cost estimator...
 
 ======================================================================
 
-📸 STEP 1: Detecting damage regions in car_damage.jpg
+ STEP 1: Detecting damage regions in car_damage.jpg
    Found 1 damage region(s)
    - Region 1: [55, 56, 168, 168] (confidence: 50.23%)
    Saved detection visualization to car_damage_detection.jpg
 
-🔍 STEP 2: Classifying damage type
+ STEP 2: Classifying damage type
    Detected damage: door_dent
    Classification confidence: 32.4%
    Affected part: Front Door
 
-💰 STEP 3: Estimating repair cost
+ STEP 3: Estimating repair cost
    Severity level: 3/5
    Car segment: Family
 
 ======================================================================
-📋 FINAL ASSESSMENT
+ FINAL ASSESSMENT
 ======================================================================
 
-✅ Estimated repair cost: ₪2,077
+ Estimated repair cost: ₪2,077
    (Approximately $561 USD)
 
-📊 Summary:
+ Summary:
    • Damage regions detected: 1
    • Damage type: door_dent
    • Affected part: Front Door
@@ -182,7 +182,7 @@ Loading models...
    • Car segment: Family
 ```
 
-## 🛠️ Training Custom Models
+##  Training Custom Models
 
 ### Train Detection Model
 
@@ -206,7 +206,7 @@ python custom_predict.py \
   --weights ../runs/custom-yolo/best.pt
 ```
 
-## 📊 Model Performance
+##  Model Performance
 
 ### Custom YOLO Detection
 - **Training Loss**: 0.0508 (from 2.22)
@@ -225,7 +225,7 @@ python custom_predict.py \
 - **Features**: Part type, severity, car segment
 - **Output Range**: ₪500 - ₪15,000
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 crash2cost/
@@ -263,7 +263,7 @@ crash2cost/
     └── image/                    # Test images
 ```
 
-## 🧪 Testing the System
+##  Testing the System
 
 ### End-to-End Test
 
@@ -285,7 +285,7 @@ cd regression-model/src
 python evaluate.py --image ../../archive/image/0.jpeg
 ```
 
-## 🔧 Technical Details
+##  Technical Details
 
 ### Custom YOLO Architecture
 
@@ -322,7 +322,7 @@ python evaluate.py --image ../../archive/image/0.jpeg
 3. **Coordinate Scaling**:
    - Scale from model space (640×640) to original image size
 
-## 📝 Key Implementation Details
+##  Key Implementation Details
 
 ### Data Augmentation (Training Only)
 
@@ -347,7 +347,7 @@ transform = T.Compose([
 - **Loss Function**: Combined box loss + classification loss
 - **Early Stopping**: Best model saved based on validation loss
 
-## 🎓 Learning Resources
+##  Learning Resources
 
 ### Understanding YOLO Architecture
 - See `TRAINING_GUIDE_HEBREW.md` for detailed Hebrew explanation
@@ -358,7 +358,7 @@ transform = T.Compose([
 - Each component is modular and can be studied independently
 - Custom implementation allows full control and understanding
 
-## 🚧 Known Limitations
+##  Known Limitations
 
 1. **Small Dataset**: Only 58 training images for detection (augmentation helps)
 2. **Single Class Detection**: Currently detects "damage" as one class
@@ -366,7 +366,7 @@ transform = T.Compose([
 4. **No Anchor Boxes**: Simplified anchor-free approach
 5. **Detection Confidence**: May vary due to small dataset
 
-## 🔮 Future Improvements
+##  Future Improvements
 
 1. **Multi-Class Detection**: Detect specific damage types (dent, scratch, crack)
 2. **Larger Dataset**: Collect more diverse damage images
@@ -375,7 +375,7 @@ transform = T.Compose([
 5. **Web Interface**: Deploy as web service with API
 6. **Mobile App**: Port to mobile devices (CoreML, TFLite)
 
-## 📄 License & Credits
+##  License & Credits
 
 This project demonstrates a complete ML pipeline built from scratch for educational purposes.
 
@@ -386,7 +386,7 @@ This project demonstrates a complete ML pipeline built from scratch for educatio
 - scikit-learn (Machine Learning)
 - NumPy (Numerical Computing)
 
-## 🤝 Contributing
+##  Contributing
 
 This is a complete, working machine learning system. Feel free to:
 - Experiment with different architectures
@@ -394,7 +394,7 @@ This is a complete, working machine learning system. Feel free to:
 - Expand the dataset
 - Add new features
 
-## 📞 Support
+##  Support
 
 For questions or issues, refer to:
 - `TRAINING_GUIDE_HEBREW.md` - Detailed training guide in Hebrew
@@ -403,6 +403,6 @@ For questions or issues, refer to:
 
 ---
 
-**Built with ❤️ using Custom PyTorch Implementation**
+**Built with  using Custom PyTorch Implementation**
 
-✨ **The entire YOLO model was built from scratch - no pre-built YOLO libraries used!**
+ **The entire YOLO model was built from scratch - no pre-built YOLO libraries used!**

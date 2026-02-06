@@ -1,6 +1,6 @@
-# 🚗 CRASH2COST MACHINE - USER GUIDE
+#  CRASH2COST MACHINE - USER GUIDE
 
-## ✅ YOUR MACHINE IS FULLY FUNCTIONAL!
+##  YOUR MACHINE IS FULLY FUNCTIONAL!
 
 ### What Your Machine Does
 1. **Detects damage** on car images using AI (YOLO object detection)
@@ -9,7 +9,7 @@
 
 ---
 
-## 🔍 How to Verify It's Working
+##  How to Verify It's Working
 
 ### Quick Check:
 ```bash
@@ -24,12 +24,12 @@ python3 crash2cost.py --image archive/image/0.jpeg --car-segment Family
 ```
 
 **Expected output:**
-- ✅ Detection message with damage type
-- 💰 Estimated repair cost in ₪ and USD
+-  Detection message with damage type
+-  Estimated repair cost in ₪ and USD
 
 ---
 
-## 📖 How to Use Your Machine
+##  How to Use Your Machine
 
 ### Basic Command:
 ```bash
@@ -71,7 +71,7 @@ python3 crash2cost.py --image archive/image/10.jpeg --car-segment Micro
 
 ---
 
-## 🎯 Damage Types Detected
+##  Damage Types Detected
 
 Your machine can identify these 7 damage types:
 
@@ -85,7 +85,7 @@ Your machine can identify these 7 damage types:
 
 ---
 
-## 📊 Machine Components
+##  Machine Components
 
 ### 1. Detection Model
 - **Model**: Custom YOLO
@@ -105,18 +105,18 @@ Your machine can identify these 7 damage types:
 
 ---
 
-## ✅ How to Know It's Working
+##  How to Know It's Working
 
 ### Success Indicators:
 
 1. **Detection Success:**
    ```
-   📊 Found 2 damage area(s)
+    Found 2 damage area(s)
    ```
 
 2. **Cost Estimation:**
    ```
-   💰 Estimated repair cost: ₪866
+    Estimated repair cost: ₪866
       (Approximately $234 USD)
    ```
    - Shows cost in both ₪ and USD
@@ -129,23 +129,23 @@ Your machine can identify these 7 damage types:
 
 ### Failure Indicators:
 
-❌ **No damage detected** - Try:
+ **No damage detected** - Try:
   - Different image with visible damage
   - Lower severity/different car segment
   - Image might not have detectable damage
 
-❌ **Import errors** - Run:
+ **Import errors** - Run:
   ```bash
   python3 test_system.py
   ```
 
-❌ **File not found** - Check:
+ **File not found** - Check:
   - Image path is correct
   - All model files exist
 
 ---
 
-## 🧪 Test Suite
+##  Test Suite
 
 ### Run Full Validation:
 ```bash
@@ -153,25 +153,25 @@ Your machine can identify these 7 damage types:
 ```
 
 **What it tests:**
-- ✅ All required files exist
-- ✅ All Python dependencies installed
-- ✅ All AI models load successfully
-- ✅ Test images available
-- ✅ Processes 3 different damage scenarios
+-  All required files exist
+-  All Python dependencies installed
+-  All AI models load successfully
+-  Test images available
+-  Processes 3 different damage scenarios
 
 **Expected result:**
 ```
-✅ VALIDATION COMPLETE - MACHINE IS FULLY FUNCTIONAL
+ VALIDATION COMPLETE - MACHINE IS FULLY FUNCTIONAL
 ```
 
 ---
 
-## 📈 Performance Metrics
+##  Performance Metrics
 
 **Current Status:**
-- Detection: ✅ Working (low confidence but functional)
-- Classification: ✅ Strong (60% accuracy, 1,048 images)
-- Cost Estimation: ✅ Working
+- Detection:  Working (low confidence but functional)
+- Classification:  Strong (60% accuracy, 1,048 images)
+- Cost Estimation:  Working
 
 **Limitations:**
 - Detection confidence is low (28-60%) due to small dataset (58 images)
@@ -185,7 +185,7 @@ Your machine can identify these 7 damage types:
 
 ---
 
-## 🎬 Quick Start
+##  Quick Start
 
 1. **Validate the machine:**
    ```bash
@@ -198,13 +198,13 @@ Your machine can identify these 7 damage types:
    ```
 
 3. **Check output:**
-   - Look for ✅ symbols
+   - Look for  symbols
    - Note the damage type
    - See the estimated cost
 
 ---
 
-## ❓ Troubleshooting
+##  Troubleshooting
 
 **Problem: "No module named X"**
 ```bash
@@ -224,12 +224,12 @@ python3 -m pip install torch torchvision ultralytics joblib scikit-learn pillow
 
 ---
 
-## 🎉 Summary
+##  Summary
 
 **Your machine IS working!** It successfully:
-- ✅ Detects car damage in images
-- ✅ Classifies damage into 7 types  
-- ✅ Estimates repair costs
-- ✅ Handles different car segments and severities
+-  Detects car damage in images
+-  Classifies damage into 7 types  
+-  Estimates repair costs
+-  Handles different car segments and severities
 
 Run `./validate_machine.sh` anytime to verify everything is working!
