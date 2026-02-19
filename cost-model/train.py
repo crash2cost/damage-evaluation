@@ -34,8 +34,8 @@ from sklearn.preprocessing import LabelEncoder
 
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "cost_model" / "dataset"
-MODEL_DIR = ROOT / "cost_model" / "models"
+DATA_DIR = ROOT / "cost-model" / "dataset"
+MODEL_DIR = ROOT / "cost-model" / "models"
 
 MODEL_DIR.mkdir(exist_ok=True)
 
@@ -246,6 +246,22 @@ def train(config: TrainingConfig) -> Any:
     )
     rf_model.fit(X_train, y_train)
 
+    # Print Random Forest model structure
+    print("\nRandom Forest Structure:")
+    print(f"  Type: Tree-based ensemble (NOT a neural network)")
+    print(f"  Number of trees:      {rf_model.n_estimators}")
+    print(f"  Max depth:            {rf_model.max_depth}")
+    print(f"  Min samples split:    {rf_model.min_samples_split}")
+    print(f"  Min samples leaf:     {rf_model.min_samples_leaf}")
+    print(f"  Input features:       {rf_model.n_features_in_}")
+    depths = [tree.tree_.max_depth for tree in rf_model.estimators_]
+    nodes = [tree.tree_.node_count for tree in rf_model.estimators_]
+    leaves = [tree.tree_.n_leaves for tree in rf_model.estimators_]
+    print(f"  Avg tree depth:       {np.mean(depths):.1f}")
+    print(f"  Avg nodes per tree:   {np.mean(nodes):.0f}")
+    print(f"  Avg leaves per tree:  {np.mean(leaves):.0f}")
+    print(f"  Total decision nodes: {sum(nodes):,}")
+
     rf_train = evaluate_model(rf_model, X_train, y_train, "Train")
     rf_test = evaluate_model(rf_model, X_test, y_test, "Test")
 
@@ -266,6 +282,22 @@ def train(config: TrainingConfig) -> Any:
         random_state=config.random_state,
     )
     gb_model.fit(X_train, y_train)
+
+    # Print Gradient Boosting model structure
+    print("\nGradient Boosting Structure:")
+    print(f"  Type: Tree-based boosting ensemble (NOT a neural network)")
+    print(f"  Number of estimators: {gb_model.n_estimators}")
+    print(f"  Max depth:            {gb_model.max_depth}")
+    print(f"  Learning rate:        {gb_model.learning_rate}")
+    print(f"  Subsample:            {gb_model.subsample}")
+    print(f"  Input features:       {gb_model.n_features_in_}")
+    gb_depths = [tree[0].tree_.max_depth for tree in gb_model.estimators_]
+    gb_nodes = [tree[0].tree_.node_count for tree in gb_model.estimators_]
+    gb_leaves = [tree[0].tree_.n_leaves for tree in gb_model.estimators_]
+    print(f"  Avg tree depth:       {np.mean(gb_depths):.1f}")
+    print(f"  Avg nodes per tree:   {np.mean(gb_nodes):.0f}")
+    print(f"  Avg leaves per tree:  {np.mean(gb_leaves):.0f}")
+    print(f"  Total decision nodes: {sum(gb_nodes):,}")
 
     gb_train = evaluate_model(gb_model, X_train, y_train, "Train")
     gb_test = evaluate_model(gb_model, X_test, y_test, "Test")

@@ -1,232 +1,156 @@
 """
-Semi-Automated Dataset Labeling
-Uses trained custom YOLO model to generate labels for classification images
+Semi-Automated Dataset Labeling (Multiclass)
+Uses trained multiclass YOLO model to generate labels for new images.
+High-confidence detections are auto-accepted; borderline cases are flagged for review.
 """
 
-import os
-import sys
-import torch
-from pathlib import Path
-from PIL import Image
 import shutil
-from tqdm import tqdm
+from pathlib import Path
 
-# Add detection model to path
-sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/src')
-from custom_inference import CustomYOLOInference
+from tqdm import tqdm
+from ultralytics import YOLO
+
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_MODEL = ROOT / "detection-model" / "runs" / "train" / "weights" / "best.pt"
+DEFAULT_SOURCE = ROOT / "severity-model" / "dataset"
+DEFAULT_OUTPUT = ROOT / "detection-model" / "dataset-auto-labeled"
+
+CLASSES = [
+    "bumper_dent", "bumper_scratch", "door_dent", "door_scratch",
+    "glass_shatter", "head_lamp", "tail_lamp",
+]
+
+# Confidence thresholds
+HIGH_CONF = 0.6    # Auto-accept
+LOW_CONF = 0.3     # Flag for review (between LOW and HIGH)
+# Below LOW_CONF: skip entirely
+
 
 class AutoLabeler:
-    def __init__(self, model_path, confidence_threshold=0.3):
-        """
-        Args:
-            model_path: Path to trained YOLO weights
-            confidence_threshold: Minimum confidence to accept detection (lower = more boxes)
-        """
-        self.model = CustomYOLOInference(model_path)
-        self.conf_threshold = confidence_threshold
-        
+    def __init__(self, model_path, high_conf=HIGH_CONF, low_conf=LOW_CONF):
+        self.model = YOLO(str(model_path))
+        self.high_conf = high_conf
+        self.low_conf = low_conf
+
     def label_image(self, image_path):
         """
-        Generate YOLO format label for an image
-        Returns: List of label lines in YOLO format: [class_id, x_center, y_center, width, height]
+        Generate YOLO format labels for an image.
+        Returns: (labels, needs_review)
+            labels: list of YOLO format strings
+            needs_review: True if any detection is in borderline confidence range
         """
-        results = self.model.predict(image_path, conf=self.conf_threshold)
-        
-        if len(results) == 0:
-            return []
-        
-        result = results[0]
-        boxes = result.boxes
-        
-        if boxes is None or len(boxes) == 0:
-            return []
-        
+        results = self.model.predict(str(image_path), conf=self.low_conf, verbose=False)
+
         labels = []
-        # Get image dimensions
-        img = Image.open(image_path)
-        img_width, img_height = img.size
-        
-        for i in range(len(boxes)):
-            # Get box coordinates (xyxy format)
-            x1, y1, x2, y2 = boxes.xyxy[i].tolist()
-            conf = boxes.conf[i].item()
-            cls = int(boxes.cls[i].item())
-            
-            # Convert to YOLO format (normalized center coordinates + width/height)
-            x_center = ((x1 + x2) / 2) / img_width
-            y_center = ((y1 + y2) / 2) / img_height
-            width = (x2 - x1) / img_width
-            height = (y2 - y1) / img_height
-            
-            # YOLO format: class_id x_center y_center width height
-            labels.append(f"{cls} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
-        
-        return labels
+        needs_review = False
+
+        for result in results:
+            if result.boxes is None:
+                continue
+            img_w = result.orig_shape[1]
+            img_h = result.orig_shape[0]
+
+            for box, conf, cls in zip(result.boxes.xyxy, result.boxes.conf, result.boxes.cls):
+                confidence = float(conf.item())
+                class_id = int(cls.item())
+
+                if confidence < self.low_conf:
+                    continue
+
+                if confidence < self.high_conf:
+                    needs_review = True
+
+                x1, y1, x2, y2 = box.cpu().numpy()
+                x_center = ((x1 + x2) / 2) / img_w
+                y_center = ((y1 + y2) / 2) / img_h
+                width = (x2 - x1) / img_w
+                height = (y2 - y1) / img_h
+
+                labels.append(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
+
+        return labels, needs_review
+
 
 def main():
-    # Paths
-    classification_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/regression-model/dataset')
-    model_path = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/runs/custom-yolo/best.pt'
-    output_dir = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset-expanded')
-    
-    # Create output directories
-    output_train_images = output_dir / 'train' / 'images'
-    output_train_labels = output_dir / 'train' / 'labels'
-    output_val_images = output_dir / 'val' / 'images'
-    output_val_labels = output_dir / 'val' / 'labels'
-    
-    for dir_path in [output_train_images, output_train_labels, output_val_images, output_val_labels]:
-        dir_path.mkdir(parents=True, exist_ok=True)
-    
-    print("🚀 Starting Semi-Automated Labeling...")
-    print(f"Model: {model_path}")
-    print(f"Source: {classification_dataset}")
-    print(f"Output: {output_dir}\n")
-    
-    # Initialize labeler
-    labeler = AutoLabeler(model_path, confidence_threshold=0.25)
-    
-    # Get all damage type folders
-    damage_types = ['bumper_dent', 'bumper_scratch', 'door_dent', 'door_scratch', 
-                    'glass_shatter', 'head_lamp', 'tail_lamp']
-    
-    # Stats
-    stats = {
-        'total_images': 0,
-        'labeled': 0,
-        'no_detection': 0,
-        'train': 0,
-        'val': 0
-    }
-    
-    # Process train split
-    print("📂 Processing train images...")
-    train_dir = classification_dataset / 'train'
-    for damage_type in damage_types:
-        damage_folder = train_dir / damage_type
-        if not damage_folder.exists():
-            continue
-        
-        images = list(damage_folder.glob('*.jpg')) + list(damage_folder.glob('*.png')) + list(damage_folder.glob('*.jpeg'))
-        
-        for img_path in tqdm(images, desc=f"  {damage_type}"):
-            stats['total_images'] += 1
-            
-            # Generate labels
-            labels = labeler.label_image(str(img_path))
-            
-            # Save image and label
-            output_name = f"{damage_type}_{img_path.name}"
-            
-            # Copy image
-            shutil.copy(img_path, output_train_images / output_name)
-            
-            # Save label
-            label_file = output_train_labels / output_name.replace('.jpg', '.txt').replace('.png', '.txt').replace('.jpeg', '.txt')
-            if labels:
-                with open(label_file, 'w') as f:
-                    f.write('\n'.join(labels))
-                stats['labeled'] += 1
-            else:
-                # Create empty label file (no detections)
-                label_file.touch()
-                stats['no_detection'] += 1
-            
-            stats['train'] += 1
-    
-    # Process val split
-    print("\n📂 Processing val images...")
-    val_dir = classification_dataset / 'val'
-    for damage_type in damage_types:
-        damage_folder = val_dir / damage_type
-        if not damage_folder.exists():
-            continue
-        
-        images = list(damage_folder.glob('*.jpg')) + list(damage_folder.glob('*.png')) + list(damage_folder.glob('*.jpeg'))
-        
-        for img_path in tqdm(images, desc=f"  {damage_type}"):
-            stats['total_images'] += 1
-            
-            # Generate labels
-            labels = labeler.label_image(str(img_path))
-            
-            # Save image and label
-            output_name = f"{damage_type}_{img_path.name}"
-            
-            # Copy image
-            shutil.copy(img_path, output_val_images / output_name)
-            
-            # Save label
-            label_file = output_val_labels / output_name.replace('.jpg', '.txt').replace('.png', '.txt').replace('.jpeg', '.txt')
-            if labels:
-                with open(label_file, 'w') as f:
-                    f.write('\n'.join(labels))
-                stats['labeled'] += 1
-            else:
-                label_file.touch()
-                stats['no_detection'] += 1
-            
-            stats['val'] += 1
-    
-    # Copy existing labeled data
-    print("\n📋 Merging with existing labeled dataset...")
-    existing_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset')
-    
-    # Copy existing train data
-    existing_train_imgs = existing_dataset / 'train' / 'images'
-    existing_train_labels = existing_dataset / 'train' / 'labels'
-    if existing_train_imgs.exists():
-        for img in existing_train_imgs.glob('*'):
-            shutil.copy(img, output_train_images / f"original_{img.name}")
-        for lbl in existing_train_labels.glob('*'):
-            shutil.copy(lbl, output_train_labels / f"original_{lbl.name}")
-        print(f"  ✓ Copied {len(list(existing_train_imgs.glob('*')))} original train images")
-    
-    # Copy existing val data
-    existing_val_imgs = existing_dataset / 'valid' / 'images'
-    existing_val_labels = existing_dataset / 'valid' / 'labels'
-    if existing_val_imgs.exists():
-        for img in existing_val_imgs.glob('*'):
-            shutil.copy(img, output_val_images / f"original_{img.name}")
-        for lbl in existing_val_labels.glob('*'):
-            shutil.copy(lbl, output_val_labels / f"original_{lbl.name}")
-        print(f"  ✓ Copied {len(list(existing_val_imgs.glob('*')))} original val images")
-    
-    # Create data.yaml
-    yaml_content = f"""# Expanded Car Damage Detection Dataset
-# Auto-labeled from classification dataset + original labeled data
+    import argparse
+    parser = argparse.ArgumentParser(description="Auto-label images for YOLO training")
+    parser.add_argument("--model", type=str, default=str(DEFAULT_MODEL))
+    parser.add_argument("--source", type=str, default=str(DEFAULT_SOURCE),
+                        help="Source directory with images organized by class")
+    parser.add_argument("--output", type=str, default=str(DEFAULT_OUTPUT))
+    parser.add_argument("--high-conf", type=float, default=HIGH_CONF)
+    parser.add_argument("--low-conf", type=float, default=LOW_CONF)
+    args = parser.parse_args()
 
-path: {output_dir}
+    source = Path(args.source)
+    output_dir = Path(args.output)
+
+    for split in ["train", "val"]:
+        (output_dir / split / "images").mkdir(parents=True, exist_ok=True)
+        (output_dir / split / "labels").mkdir(parents=True, exist_ok=True)
+    (output_dir / "review").mkdir(parents=True, exist_ok=True)
+
+    labeler = AutoLabeler(args.model, args.high_conf, args.low_conf)
+
+    stats = {"total": 0, "labeled": 0, "no_detection": 0, "needs_review": 0}
+
+    for split in ["train", "val"]:
+        split_dir = source / split
+        if not split_dir.exists():
+            continue
+
+        for damage_type in CLASSES:
+            folder = split_dir / damage_type
+            if not folder.exists():
+                continue
+
+            images = list(folder.glob("*.jpg")) + list(folder.glob("*.png")) + list(folder.glob("*.jpeg"))
+
+            for img_path in tqdm(images, desc=f"  {split}/{damage_type}"):
+                stats["total"] += 1
+
+                labels, needs_review = labeler.label_image(img_path)
+                output_name = f"{damage_type}_{img_path.name}"
+                stem = Path(output_name).stem
+
+                if not labels:
+                    stats["no_detection"] += 1
+                    continue
+
+                if needs_review:
+                    stats["needs_review"] += 1
+                    shutil.copy(img_path, output_dir / "review" / output_name)
+                    with open(output_dir / "review" / f"{stem}.txt", "w") as f:
+                        f.write("\n".join(labels))
+                else:
+                    stats["labeled"] += 1
+                    shutil.copy(img_path, output_dir / split / "images" / output_name)
+                    with open(output_dir / split / "labels" / f"{stem}.txt", "w") as f:
+                        f.write("\n".join(labels))
+
+    # Write data.yaml
+    yaml_content = f"""# Auto-labeled multiclass detection dataset
+path: {output_dir.absolute()}
 train: train/images
 val: val/images
 
-# Classes
-nc: 1  # number of classes
-names: ['damage']  # class names
+nc: {len(CLASSES)}
+names: {CLASSES}
 """
-    
-    with open(output_dir / 'data.yaml', 'w') as f:
+    with open(output_dir / "data.yaml", "w") as f:
         f.write(yaml_content)
-    
-    # Print summary
-    print("\n" + "="*60)
-    print("✅ LABELING COMPLETE!")
-    print("="*60)
-    print(f"Total images processed: {stats['total_images']}")
-    if stats['total_images'] > 0:
-        print(f"  - With detections: {stats['labeled']} ({stats['labeled']/stats['total_images']*100:.1f}%)")
-        print(f"  - No detections: {stats['no_detection']} ({stats['no_detection']/stats['total_images']*100:.1f}%)")
-    else:
-        print(f"  - With detections: {stats['labeled']}")
-        print(f"  - No detections: {stats['no_detection']}")
-    print(f"\nSplit:")
-    print(f"  - Train: {stats['train']} images")
-    print(f"  - Val: {stats['val']} images")
-    print(f"\nOriginal labeled data merged: Yes")
-    print(f"\nDataset saved to: {output_dir}")
-    print(f"Config file: {output_dir / 'data.yaml'}")
-    print("\n⚠️  IMPORTANT: Review a sample of auto-labeled images before training!")
-    print("   Some labels may be incorrect and need manual adjustment.")
 
-if __name__ == '__main__':
+    print(f"\n{'='*60}")
+    print("AUTO-LABELING COMPLETE")
+    print(f"{'='*60}")
+    print(f"Total images: {stats['total']}")
+    print(f"  Auto-labeled (high conf): {stats['labeled']}")
+    print(f"  Needs review (borderline): {stats['needs_review']}")
+    print(f"  No detection: {stats['no_detection']}")
+    print(f"\nOutput: {output_dir}")
+    print(f"Review queue: {output_dir / 'review'} ({stats['needs_review']} images)")
+    print("\nIMPORTANT: Review borderline images before adding to training set!")
+
+
+if __name__ == "__main__":
     main()

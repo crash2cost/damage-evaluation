@@ -1,10 +1,10 @@
 import shutil
 from pathlib import Path
 import random
-manual_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/manual_labels")
+manual_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/manual_labels")
 cardd_images_dir = Path("/Users/idolevi/.cache/huggingface/hub/datasets--harpreetsahota--CarDD/snapshots/56900bde8dddfe00eb7c03114a1d46e9105e3cdb/data")
-original_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset")
-output_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset-manual")
+original_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset")
+output_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset-manual")
 (output_dataset / "train" / "images").mkdir(parents=True, exist_ok=True)
 (output_dataset / "train" / "labels").mkdir(parents=True, exist_ok=True)
 (output_dataset / "val" / "images").mkdir(parents=True, exist_ok=True)

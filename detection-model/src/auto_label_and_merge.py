@@ -4,13 +4,13 @@ from pathlib import Path
 from PIL import Image
 import shutil
 from tqdm import tqdm
-sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/src')
+sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/src')
 from custom_inference import CustomYOLOInference
-manual_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/manual_labels")
+manual_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/manual_labels")
 cardd_images_dir = Path("/Users/idolevi/.cache/huggingface/hub/datasets--harpreetsahota--CarDD/snapshots/56900bde8dddfe00eb7c03114a1d46e9105e3cdb/data")
-model_path = "/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/runs/custom-yolo/best.pt"
-output_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/auto_labels")
-final_dataset_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset-final")
+model_path = "/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/runs/custom-yolo/best.pt"
+output_labels_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/auto_labels")
+final_dataset_dir = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset-final")
 output_labels_dir.mkdir(exist_ok=True)
 print(" Auto-labeling remaining CarDD images...")
 print(f"   Model: {model_path}")
@@ -69,7 +69,7 @@ for label_path in output_labels_dir.glob("*.txt"):
     img_path = cardd_images_dir / f"{label_path.stem}.jpg"
     if img_path.exists():
         all_labeled.append(('auto', img_path, label_path))
-original_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset")
+original_dataset = Path("/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset")
 for split in ['train', 'val']:
     img_dir = original_dataset / split / "images"
     lbl_dir = original_dataset / split / "labels"

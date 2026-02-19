@@ -50,8 +50,8 @@ def test_severity_model():
         
         # Try multiple possible weight locations
         possible_paths = [
-            ROOT / "severity_model" / "models" / "best_model.pt",
-            ROOT / "severity_model" / "models" / "damage_classifier_best.pt",
+            ROOT / "severity-model" / "models" / "best_model.pt",
+            ROOT / "severity-model" / "models" / "damage_classifier_best.pt",
         ]
         
         weights = None
@@ -62,7 +62,7 @@ def test_severity_model():
         
         if weights is None:
             print(f"    No weights found")
-            print("    Train first with: python severity_model/train.py")
+            print("    Train first with: python severity-model/train.py")
             return False
         
         checkpoint = torch.load(weights, map_location="cpu")
@@ -102,13 +102,13 @@ def test_cost_model():
     try:
         import joblib
         
-        model_path = ROOT / "cost_model" / "models" / "cost_estimator.pkl"
-        part_enc_path = ROOT / "cost_model" / "models" / "part_encoder.pkl"
-        seg_enc_path = ROOT / "cost_model" / "models" / "segment_encoder.pkl"
+        model_path = ROOT / "cost-model" / "models" / "cost_estimator.pkl"
+        part_enc_path = ROOT / "cost-model" / "models" / "part_encoder.pkl"
+        seg_enc_path = ROOT / "cost-model" / "models" / "segment_encoder.pkl"
         
         if not model_path.exists():
             print(f"    No model found at {model_path}")
-            print("    Train first with: python cost_model/train.py")
+            print("    Train first with: python cost-model/train.py")
             return False
         
         model = joblib.load(model_path)

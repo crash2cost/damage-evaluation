@@ -173,7 +173,7 @@ class LabelingTool:
 def main():
     import sys
     image_dir = "/Users/idolevi/.cache/huggingface/hub/datasets--harpreetsahota--CarDD/snapshots/56900bde8dddfe00eb7c03114a1d46e9105e3cdb/data"
-    output_dir = "/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/manual_labels"
+    output_dir = "/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/manual_labels"
     if len(sys.argv) > 1:
         image_dir = sys.argv[1]
     if len(sys.argv) > 2:

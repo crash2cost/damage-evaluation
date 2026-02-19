@@ -1,10 +1,10 @@
 """Test model on sample CarDD images"""
 import sys
 import glob
-sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/src')
+sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/src')
 from custom_inference import CustomYOLOInference
 
-model_path = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/runs/custom-yolo/best.pt'
+model_path = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/runs/custom-yolo/best.pt'
 model = CustomYOLOInference(model_path)
 
 # Test on CarDD images
@@ -20,7 +20,7 @@ for img in cardd_images:
 
 # Also test original trained images
 print('\nTesting original training images:')
-orig_images = sorted(glob.glob('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset/train/images/*.jpg'))[:5]
+orig_images = sorted(glob.glob('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset/train/images/*.jpg'))[:5]
 for img in orig_images:
     result = model.predict(img, conf=0.05)  # Lowered from 0.25
     if result and hasattr(result, 'boxes') and result.boxes.xyxy is not None:

@@ -87,7 +87,7 @@ python pipeline.py --image path/to/damage.jpg --car-segment Family
 
 ============================================================
  TOTAL ESTIMATED COST: ₪1,250
-⏱  Inference Time: 145ms
+Inference Time: 145ms
 ============================================================
 ```
 

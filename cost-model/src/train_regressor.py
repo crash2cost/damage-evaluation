@@ -8,8 +8,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import joblib
 import json
 ROOT = Path(__file__).resolve().parents[2]
-DATA_PATH = ROOT / "severity_model" / "dataset" / "detailed_repair_costs.csv"
-MODEL_DIR = ROOT / "severity_model" / "models"
+DATA_PATH = ROOT / "severity-model" / "dataset" / "detailed_repair_costs.csv"
+MODEL_DIR = ROOT / "severity-model" / "models"
 MODEL_DIR.mkdir(exist_ok=True)
 print("Loading dataset...")
 df = pd.read_csv(DATA_PATH)

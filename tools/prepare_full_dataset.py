@@ -12,7 +12,7 @@ import shutil
 from tqdm import tqdm
 
 # Add detection model to path
-sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/src')
+sys.path.append('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/src')
 from custom_inference import CustomYOLOInference
 
 class AutoLabeler:
@@ -63,9 +63,9 @@ class AutoLabeler:
 def main():
     # Paths
     cardd_cache = Path('/Users/idolevi/.cache/huggingface/hub/datasets--harpreetsahota--CarDD/snapshots/56900bde8dddfe00eb7c03114a1d46e9105e3cdb/data')
-    classification_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/regression-model/dataset')
-    model_path = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/runs/custom-yolo/best.pt'
-    output_dir = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset-expanded')
+    classification_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/regression-model/dataset')
+    model_path = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/runs/custom-yolo/best.pt'
+    output_dir = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset-expanded')
     
     # Create output directories
     output_train_images = output_dir / 'train' / 'images'
@@ -213,7 +213,7 @@ def main():
     
     # ===== Merge original labeled data =====
     print("\n📋 Merging original labeled dataset...")
-    existing_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset')
+    existing_dataset = Path('/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset')
     
     existing_train_imgs = existing_dataset / 'train' / 'images'
     existing_train_labels = existing_dataset / 'train' / 'labels'

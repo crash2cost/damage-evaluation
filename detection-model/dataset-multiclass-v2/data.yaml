@@ -1,0 +1,8 @@
+# Crash2Cost Multiclass Detection Dataset v2
+# Auto-generated with real bounding boxes
+path: /Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset-multiclass-v2
+train: train/images
+val: val/images
+
+nc: 7
+names: ['bumper_dent', 'bumper_scratch', 'door_dent', 'door_scratch', 'glass_shatter', 'head_lamp', 'tail_lamp']

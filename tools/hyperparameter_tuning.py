@@ -44,8 +44,8 @@ def tune_severity_classifier(n_trials: int = 50):
     print("🔧 Tuning Severity Classifier (ResNet18)")
     print("=" * 60)
     
-    DATA_DIR = ROOT / "severity_model" / "dataset"
-    MODEL_DIR = ROOT / "severity_model" / "models"
+    DATA_DIR = ROOT / "severity-model" / "dataset"
+    MODEL_DIR = ROOT / "severity-model" / "models"
     MODEL_DIR.mkdir(exist_ok=True)
     
     def objective(trial):
@@ -187,8 +187,8 @@ def tune_cost_regressor(n_trials: int = 100):
     print("🔧 Tuning Cost Regressor (RF/GB)")
     print("=" * 60)
     
-    DATA_PATH = ROOT / "cost_model" / "dataset" / "detailed_repair_costs.csv"
-    MODEL_DIR = ROOT / "cost_model" / "models"
+    DATA_PATH = ROOT / "cost-model" / "dataset" / "detailed_repair_costs.csv"
+    MODEL_DIR = ROOT / "cost-model" / "models"
     MODEL_DIR.mkdir(exist_ok=True)
     
     # Load data

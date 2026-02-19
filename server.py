@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Crash2Cost API Server
-=====================
-FastAPI server for car damage cost estimation.
-
-Usage:
-    python server.py                    # Start server on port 8000
-    python server.py --port 8080        # Custom port
-
-Endpoints:
-    POST /assess - Upload image for damage assessment
-    GET /health  - Health check
-"""
 
 import argparse
 import io
@@ -32,25 +19,17 @@ from pipeline import (
     FALLBACK_DAMAGE_TO_PART as DAMAGE_TO_PART,
 )
 
-# =============================================================================
-# Constants
-# =============================================================================
-
-# API Configuration
 API_TITLE = "Crash2Cost API"
 API_DESCRIPTION = "Car damage detection and cost estimation API"
 API_VERSION = "1.0.0"
 
-# Server defaults
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8000
 
-# Detection thresholds
 DEFAULT_CONFIDENCE_THRESHOLD = 0.02
 MIN_CONFIDENCE_THRESHOLD = 0.01
 MAX_CONFIDENCE_THRESHOLD = 0.9
 
-# Fallback values for no-detection scenarios
 DEFAULT_ASSUMED_SEVERITY = 2
 DEFAULT_ASSUMED_CONFIDENCE = 0.15
 DEFAULT_ASSUMED_DAMAGE_TYPE = "suspected damage (low confidence)"
@@ -58,20 +37,13 @@ DEFAULT_ASSUMED_PART = "Unknown Area"
 DEFAULT_ASSUMED_COST = 1500
 DEFAULT_UNKNOWN_PART = "Front Bumper"
 
-# HTTP Status Codes
 HTTP_BAD_REQUEST = 400
 HTTP_INTERNAL_ERROR = 500
 HTTP_SERVICE_UNAVAILABLE = 503
 
-# Time conversion
 MS_PER_SECOND = 1000
 
-# Currency
 DEFAULT_CURRENCY = "ILS"
-
-# =============================================================================
-# FastAPI Application
-# =============================================================================
 
 app = FastAPI(
     title=API_TITLE,
@@ -79,7 +51,6 @@ app = FastAPI(
     version=API_VERSION,
 )
 
-# Enable CORS for web frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -88,17 +59,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global pipeline instance (loaded once)
 pipeline: Optional[Crash2CostPipeline] = None
 
 
-# =============================================================================
-# Response Models
-# =============================================================================
-
-
 class DamageResponse(BaseModel):
-    """Single damage item response."""
     damage_type: str
     confidence: float
     severity: int
@@ -108,7 +72,6 @@ class DamageResponse(BaseModel):
 
 
 class AssessmentResponse(BaseModel):
-    """Full assessment response."""
     success: bool
     damages: List[DamageResponse]
     total_cost: float
@@ -118,24 +81,12 @@ class AssessmentResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Health check response."""
     status: str
     models_loaded: Dict[str, bool]
 
 
-# =============================================================================
-# API Endpoints
-# =============================================================================
-
-
 @app.on_event("startup")
 async def startup_event() -> None:
-    """
-    Load models on server startup.
-
-    Initializes the Crash2CostPipeline with all required models.
-    Raises an exception if models fail to load.
-    """
     global pipeline
     print("\nLoading Crash2Cost models...")
     try:
@@ -148,12 +99,6 @@ async def startup_event() -> None:
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
-    """
-    Check if the server and models are ready.
-
-    Returns:
-        HealthResponse with status and model availability.
-    """
     return HealthResponse(
         status="healthy" if pipeline else "unhealthy",
         models_loaded={
@@ -178,28 +123,17 @@ async def assess_damage(
         le=MAX_CONFIDENCE_THRESHOLD,
         description="Detection confidence threshold"
     ),
+    use_tta: bool = Query(
+        default=False,
+        description="Enable test-time augmentation for higher accuracy (slower)"
+    ),
 ) -> JSONResponse:
-    """
-    Assess car damage from an uploaded image.
-
-    Args:
-        file: Uploaded image file (JPG/PNG).
-        car_segment: Vehicle segment for cost estimation.
-        conf_threshold: Minimum confidence for detections.
-
-    Returns:
-        JSONResponse with damage assessment results.
-
-    Raises:
-        HTTPException: If models not loaded, invalid image, or processing error.
-    """
     if not pipeline:
         raise HTTPException(
             status_code=HTTP_SERVICE_UNAVAILABLE,
             detail="Models not loaded"
         )
 
-    # Validate image type
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=HTTP_BAD_REQUEST,
@@ -207,22 +141,20 @@ async def assess_damage(
         )
 
     try:
-        # Read and convert image
         contents = await file.read()
         pil_image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-        # Run assessment
         start_time = time.time()
         assessment: VehicleAssessment = pipeline.assess_damage(
             pil_image,
             car_segment=car_segment,
             conf_threshold=conf_threshold,
+            use_tta=use_tta,
         )
         inference_time = (time.time() - start_time) * MS_PER_SECOND
 
-        # Return in format expected by Java backend (PythonAssessmentResponse)
         if assessment.damages:
-            # Get first damage for primary response
+            # Return primary damage for backward compatibility
             d = assessment.damages[0]
             part_name = DAMAGE_TO_PART.get(d.damage_type, DEFAULT_UNKNOWN_PART)
 
@@ -233,10 +165,22 @@ async def assess_damage(
                 "severity": d.severity,
                 "carSegment": car_segment,
                 "estimatedCost": int(assessment.total_cost),
-                "currency": DEFAULT_CURRENCY
+                "currency": DEFAULT_CURRENCY,
+                "damages": [
+                    {
+                        "damageType": dmg.damage_type,
+                        "confidence": round(dmg.damage_confidence, 4),
+                        "part": DAMAGE_TO_PART.get(dmg.damage_type, DEFAULT_UNKNOWN_PART),
+                        "severity": dmg.severity,
+                        "estimatedCost": int(dmg.estimated_cost),
+                        "action": dmg.repair_or_replace,
+                        "bbox": list(dmg.detection.bbox),
+                    }
+                    for dmg in assessment.damages
+                ],
+                "inferenceTimeMs": round(inference_time, 1),
             })
         else:
-            # Assume some damage if nothing is detected (low confidence fallback)
             assumed_cost = (
                 pipeline.estimate_cost("dent", DEFAULT_ASSUMED_SEVERITY, car_segment)
                 if pipeline else DEFAULT_ASSUMED_COST
@@ -248,7 +192,9 @@ async def assess_damage(
                 "severity": DEFAULT_ASSUMED_SEVERITY,
                 "carSegment": car_segment,
                 "estimatedCost": int(assumed_cost),
-                "currency": DEFAULT_CURRENCY
+                "currency": DEFAULT_CURRENCY,
+                "damages": [],
+                "inferenceTimeMs": round(inference_time, 1),
             })
 
     except UnidentifiedImageError as e:
@@ -270,12 +216,6 @@ async def assess_damage(
 
 @app.get("/")
 async def root() -> Dict[str, object]:
-    """
-    API info endpoint.
-
-    Returns:
-        Dictionary with API name, version, and available endpoints.
-    """
     return {
         "name": API_TITLE,
         "version": API_VERSION,
@@ -288,7 +228,6 @@ async def root() -> Dict[str, object]:
 
 
 def main() -> None:
-    """Main entry point for running the server."""
     parser = argparse.ArgumentParser(description="Crash2Cost API Server")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host to bind to")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port to bind to")

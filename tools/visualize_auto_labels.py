@@ -96,7 +96,7 @@ def visualize_labels(dataset_dir, num_samples=20, split='train'):
     print("✓ Visualization complete")
 
 if __name__ == '__main__':
-    dataset_dir = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/machines/detection-model/dataset-expanded'
+    dataset_dir = '/Users/idolevi/Library/CloudStorage/OneDrive-Personal/Desktop/crash2cost/ml-service/detection-model/dataset-expanded'
     
     print("Choose what to visualize:")
     print("1. Train split (auto-labeled)")

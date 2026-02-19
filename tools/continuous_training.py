@@ -25,23 +25,16 @@ TRAINING_DIR = Path("detection-model/training_temp")
 RUNS_DIR = Path("detection-model/runs")
 
 CLASSES = [
-    "hood_dent", "hood_scratch", "hood_crack",
-    "bumper_dent", "bumper_scratch", "bumper_crack", 
-    "door_dent", "door_scratch", "door_crack",
-    "fender_dent", "fender_scratch", "fender_crack",
-    "trunk_dent", "trunk_scratch", "trunk_crack",
-    "glass_crack",
-    "headlight_crack", "headlight_broken",
-    "taillight_crack", "taillight_broken",
-    "mirror_crack", "mirror_broken"
+    "bumper_dent", "bumper_scratch", "door_dent", "door_scratch",
+    "glass_shatter", "head_lamp", "tail_lamp",
 ]
 
 # Training parameters
-MAX_ITERATIONS = 20  # More iterations
-CONFIDENCE_THRESHOLD = 0.4  # Start a bit lower
-MIN_CONFIDENCE = 0.25  # Even lower threshold to get more data
-EPOCHS_PER_ITERATION = 50  # More epochs for better learning
-BATCH_SIZE = 8
+MAX_ITERATIONS = 20
+CONFIDENCE_THRESHOLD = 0.5  # Start stricter for quality
+MIN_CONFIDENCE = 0.3  # Minimum confidence to accept auto-labels
+EPOCHS_PER_ITERATION = 50
+BATCH_SIZE = 16
 
 AUTO_LABELS.mkdir(exist_ok=True)
 
@@ -142,16 +135,9 @@ def train_iteration(iteration, epochs=EPOCHS_PER_ITERATION):
     
     yaml_path, num_samples = prepare_training_data()
     
-    # Use larger model if we have enough data
-    if num_samples > 500:
-        model = YOLO('yolov8m.pt')  # Medium model - better accuracy
-        log("Using YOLOv8m (large dataset - best accuracy)")
-    elif num_samples > 200:
-        model = YOLO('yolov8s.pt')  # Small model
-        log("Using YOLOv8s (more data available)")
-    else:
-        model = YOLO('yolov8n.pt')  # Nano model
-        log("Using YOLOv8n")
+    # Use YOLOv8s for multiclass detection (good balance of speed and accuracy)
+    model = YOLO('yolov8s.pt')
+    log(f"Using YOLOv8s ({num_samples} samples)")
     
     results = model.train(
         data=str(yaml_path),

@@ -8,7 +8,7 @@ import torch.nn as nn
 from pathlib import Path
 
 # Load model
-weights_path = Path('severity_model/models/best_model.pt')
+weights_path = Path('severity-model/models/best_model.pt')
 checkpoint = torch.load(weights_path, map_location='cpu')
 classes = checkpoint['classes']
 print('Classes:', classes)
@@ -32,7 +32,7 @@ transform = transforms.Compose([
 # Test each class
 print("\n=== Testing samples from each class ===")
 for class_name in classes:
-    class_dir = Path(f'severity_model/dataset/train/{class_name}')
+    class_dir = Path(f'severity-model/dataset/train/{class_name}')
     if not class_dir.exists():
         continue
     
@@ -60,7 +60,7 @@ for class_name in classes:
 print("\n=== Checking for bias toward specific classes ===")
 all_preds = []
 for class_name in classes:
-    class_dir = Path(f'severity_model/dataset/train/{class_name}')
+    class_dir = Path(f'severity-model/dataset/train/{class_name}')
     if not class_dir.exists():
         continue
     

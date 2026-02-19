@@ -26,22 +26,23 @@ from ultralytics import YOLO
 
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
-DATASET_CONFIG = ROOT / "detection-model" / "dataset-final" / "data.yaml"
+DATASET_CONFIG = ROOT / "detection-model" / "dataset-multiclass-v2" / "data.yaml"
+DATASET_CONFIG_FALLBACK = ROOT / "detection-model" / "dataset-final" / "data.yaml"
 RUNS_DIR = ROOT / "detection-model" / "runs"
 PRETRAINED_DIR = ROOT / "detection-model" / "pretrained"
 
 # Training defaults
-DEFAULT_EPOCHS = 50
-DEFAULT_BATCH_SIZE = 32
+DEFAULT_EPOCHS = 100
+DEFAULT_BATCH_SIZE = 16
 DEFAULT_IMAGE_SIZE = 640
-DEFAULT_MODEL_SIZE = "n"
-DEFAULT_PATIENCE = 15
+DEFAULT_MODEL_SIZE = "s"
+DEFAULT_PATIENCE = 20
 DEFAULT_CONFIDENCE = 0.25
 
 # Training configuration
 NUM_WORKERS = 4
 MAX_DETECTIONS = 100
-MOSAIC_CLOSE_EPOCHS = 10
+MOSAIC_CLOSE_EPOCHS = 15
 
 # Display
 SEPARATOR_WIDTH = 60
@@ -128,9 +129,30 @@ def train(
     else:
         model = YOLO(str(pretrained_model) if pretrained_model.exists() else f"yolov8{model_size}.pt")
 
-    # Train with optimized settings for speed and stability
+    # Print full model architecture
+    print(f"\n{'=' * SEPARATOR_WIDTH}")
+    print("YOLOv8 Model Architecture")
+    print(f"{'=' * SEPARATOR_WIDTH}")
+    model.info(detailed=True)
+    total_layers = len(list(model.model.model))
+    total_params = sum(p.numel() for p in model.model.parameters())
+    trainable_params = sum(p.numel() for p in model.model.parameters() if p.requires_grad)
+    print(f"\n  Total backbone layers: {total_layers}")
+    print(f"  Total parameters:     {total_params:,}")
+    print(f"  Trainable parameters: {trainable_params:,}")
+    print(f"{'=' * SEPARATOR_WIDTH}\n")
+
+    # Use multiclass-v2 dataset if available, fall back to original
+    data_config = DATASET_CONFIG if DATASET_CONFIG.exists() else DATASET_CONFIG_FALLBACK
+    print(f"Dataset config: {data_config}")
+
+    # Cap batch size for larger models on MPS
+    if device == "mps" and model_size in ("s", "m", "l", "x"):
+        batch_size = min(batch_size, 16)
+
+    # Train with optimized settings for multiclass detection
     results = model.train(
-        data=str(DATASET_CONFIG),
+        data=str(data_config),
         epochs=epochs,
         imgsz=img_size,
         batch=batch_size,
@@ -150,7 +172,30 @@ def train(
         amp=True,  # Mixed precision training
         max_det=MAX_DETECTIONS,
         close_mosaic=MOSAIC_CLOSE_EPOCHS,
-        rect=True,  # Rectangular training for faster inference
+        # Learning rate schedule
+        cos_lr=True,  # Cosine annealing LR
+        warmup_epochs=5,  # Longer warmup for stability
+        lr0=0.01,  # Initial learning rate
+        lrf=0.01,  # Final LR fraction
+        # Loss weights tuned for multiclass
+        cls=1.5,  # Higher classification loss weight
+        box=7.5,  # Box regression loss weight
+        # Regularization
+        label_smoothing=0.1,  # Prevent overconfident predictions
+        dropout=0.1,  # Dropout in detection head
+        # Augmentation
+        mosaic=1.0,  # Mosaic augmentation (4 images combined)
+        mixup=0.15,  # MixUp augmentation
+        hsv_h=0.015,  # HSV-Hue augmentation
+        hsv_s=0.7,  # HSV-Saturation augmentation
+        hsv_v=0.4,  # HSV-Value augmentation
+        degrees=15.0,  # Rotation degrees
+        translate=0.2,  # Translation fraction
+        scale=0.5,  # Scale augmentation
+        shear=5.0,  # Shear degrees
+        perspective=0.0001,  # Perspective distortion
+        flipud=0.1,  # Vertical flip
+        fliplr=0.5,  # Horizontal flip
     )
 
     print("\nTraining complete!")

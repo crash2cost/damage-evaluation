@@ -6,8 +6,8 @@ Copies images from multiclass detection dataset to severity model dataset
 to balance the training data, especially for underrepresented dent classes.
 
 Usage:
-    python scripts/augment_dent_data.py --dry-run     # Preview what will be copied
-    python scripts/augment_dent_data.py               # Actually copy files
+    python tools/augment_dent_data.py --dry-run     # Preview what will be copied
+    python tools/augment_dent_data.py               # Actually copy files
 """
 
 import argparse
@@ -19,7 +19,7 @@ import random
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
 MULTICLASS_DIR = ROOT / "detection-model" / "dataset-multiclass"
-SEVERITY_DIR = ROOT / "severity_model" / "dataset"
+SEVERITY_DIR = ROOT / "severity-model" / "dataset"
 
 # Class mapping (multiclass ID -> class name)
 CLASS_MAPPING = {
