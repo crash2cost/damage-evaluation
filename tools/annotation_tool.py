@@ -479,6 +479,9 @@ class AnnotationHandler(SimpleHTTPRequestHandler):
                 
         elif parsed.path.startswith('/api/labels/'):
             label_name = parsed.path.split('/')[-1]
+            if not self._is_safe_label_name(label_name):
+                self.send_error(400, "Invalid label name")
+                return
             label_path = LABEL_DIR / f"{label_name}.json"
             
             data = {'boxes': []}
@@ -493,13 +496,21 @@ class AnnotationHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404)
     
+    @staticmethod
+    def _is_safe_label_name(name):
+        import re
+        return bool(re.match(r'^[a-zA-Z0-9_.\-]+$', name)) and '..' not in name
+
     def do_POST(self):
         if self.path.startswith('/api/labels/'):
             label_name = self.path.split('/')[-1]
+            if not self._is_safe_label_name(label_name):
+                self.send_error(400, "Invalid label name")
+                return
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data)
-            
+
             # Save JSON labels
             label_path = LABEL_DIR / f"{label_name}.json"
             with open(label_path, 'w') as f:
