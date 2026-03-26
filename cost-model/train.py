@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Cost Estimation Model Training - Car Repair Cost Prediction (v2)
+Cost Estimation Model Training - Car Repair Cost Prediction (v3)
 =================================================================
 Improved model that uses:
 - Part_Name: Which car part is damaged (Front Bumper, Hood, etc.)
 - Damage_Type: Type of damage (bumper_dent, door_scratch, etc.)
 - Severity: Damage severity level (1-5)
-
-Removed: Car_Segment (not meaningful for repair cost)
+- Car_Category: Vehicle category affecting repair cost (sedan, luxury, etc.)
+- Interaction features: Severity², Part×Severity, Damage×Severity
 
 Usage:
     python train.py                                  # Train with defaults
@@ -44,15 +44,15 @@ DEFAULT_RANDOM_STATE = 42
 DEFAULT_TEST_SIZE = 0.2
 
 # Random Forest defaults
-DEFAULT_RF_ESTIMATORS = 200
-DEFAULT_RF_MAX_DEPTH = 15
+DEFAULT_RF_ESTIMATORS = 500
+DEFAULT_RF_MAX_DEPTH = 20
 DEFAULT_RF_MIN_SAMPLES_SPLIT = 3
 DEFAULT_RF_MIN_SAMPLES_LEAF = 1
 
 # Gradient Boosting defaults
-DEFAULT_GB_ESTIMATORS = 200
-DEFAULT_GB_MAX_DEPTH = 6
-DEFAULT_GB_LEARNING_RATE = 0.1
+DEFAULT_GB_ESTIMATORS = 500
+DEFAULT_GB_MAX_DEPTH = 8
+DEFAULT_GB_LEARNING_RATE = 0.05
 DEFAULT_GB_SUBSAMPLE = 0.8
 
 # Cross-validation
@@ -67,27 +67,26 @@ PERCENTAGE_MULTIPLIER = 100
 MAX_SEVERITY = 5
 
 # Model version
-MODEL_VERSION = 2
+MODEL_VERSION = 3
+
+# Mapping from API car_segment names to dataset Car_Category names
+SEGMENT_TO_CATEGORY = {
+    "Small": "small",
+    "Sedan": "sedan",
+    "Family": "family_suv",
+    "SUV": "family_suv",
+    "Truck": "truck",
+    "Minivan": "minivan",
+    "Sports": "sports",
+    "Luxury": "luxury",
+    "Electric": "electric",
+}
+DEFAULT_CATEGORY = "sedan"
 
 
 @dataclass
 class TrainingConfig:
-    """
-    Training configuration for cost estimation models.
-
-    Attributes:
-        data_path: Path to the training data CSV file.
-        random_state: Random seed for reproducibility.
-        test_size: Proportion of data to use for testing.
-        rf_estimators: Number of trees in Random Forest.
-        rf_max_depth: Maximum depth of Random Forest trees.
-        rf_min_samples_split: Minimum samples required to split RF node.
-        rf_min_samples_leaf: Minimum samples required at RF leaf node.
-        gb_estimators: Number of boosting stages for Gradient Boosting.
-        gb_max_depth: Maximum depth of GB trees.
-        gb_learning_rate: Learning rate for Gradient Boosting.
-        gb_subsample: Subsample ratio for Gradient Boosting.
-    """
+    """Training configuration for cost estimation models."""
     data_path: Path = DATA_DIR / "repair_costs_v2.csv"
     random_state: int = DEFAULT_RANDOM_STATE
     test_size: float = DEFAULT_TEST_SIZE
@@ -101,58 +100,62 @@ class TrainingConfig:
     gb_subsample: float = DEFAULT_GB_SUBSAMPLE
 
 
-# Feature columns for the model
-FEATURE_COLUMNS: List[str] = ["Part_Encoded", "Damage_Encoded", "Severity"]
+# Base feature columns (before interaction features)
+BASE_FEATURE_COLUMNS: List[str] = ["Part_Encoded", "Damage_Encoded", "Severity", "Category_Encoded"]
+
+# All feature columns including engineered features
+FEATURE_COLUMNS: List[str] = [
+    "Part_Encoded", "Damage_Encoded", "Severity", "Category_Encoded",
+    "Severity_Sq", "Part_Severity", "Damage_Severity",
+]
 
 # Required columns in training data
 REQUIRED_COLUMNS = {"Part_Name", "Damage_Type", "Severity", "Estimated_Cost"}
 
 
 def load_data(data_path: Path) -> pd.DataFrame:
-    """
-    Load and validate the dataset.
-
-    Args:
-        data_path: Path to the CSV file containing training data.
-
-    Returns:
-        DataFrame with validated training data.
-
-    Raises:
-        ValueError: If required columns are missing from the dataset.
-    """
+    """Load and validate the dataset."""
     df = pd.read_csv(data_path)
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
+    # If Car_Category is missing, default to 'sedan'
+    if "Car_Category" not in df.columns:
+        df["Car_Category"] = DEFAULT_CATEGORY
+
+    return df
+
+
+def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add engineered interaction features."""
+    df = df.copy()
+    df["Severity_Sq"] = df["Severity"] ** 2
+    df["Part_Severity"] = df["Part_Encoded"] * df["Severity"]
+    df["Damage_Severity"] = df["Damage_Encoded"] * df["Severity"]
     return df
 
 
 def prepare_features(
-    df: pd.DataFrame
-) -> Tuple[pd.DataFrame, pd.Series, LabelEncoder, LabelEncoder]:
-    """
-    Prepare features with label encoding.
-
-    Args:
-        df: DataFrame with Part_Name, Damage_Type, and Severity columns.
-
-    Returns:
-        Tuple of (features_df, target_series, part_encoder, damage_encoder).
-    """
+    df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, pd.Series, LabelEncoder, LabelEncoder, LabelEncoder]:
+    """Prepare features with label encoding and interaction features."""
     part_encoder = LabelEncoder()
     damage_encoder = LabelEncoder()
+    category_encoder = LabelEncoder()
 
     df = df.copy()
     df["Part_Encoded"] = part_encoder.fit_transform(df["Part_Name"])
     df["Damage_Encoded"] = damage_encoder.fit_transform(df["Damage_Type"])
+    df["Category_Encoded"] = category_encoder.fit_transform(df["Car_Category"])
+
+    df = add_interaction_features(df)
 
     X = df[FEATURE_COLUMNS]
     y = df["Estimated_Cost"]
 
-    return X, y, part_encoder, damage_encoder
+    return X, y, part_encoder, damage_encoder, category_encoder
 
 
 def evaluate_model(
@@ -161,18 +164,7 @@ def evaluate_model(
     y: pd.Series,
     set_name: str
 ) -> Dict[str, float]:
-    """
-    Evaluate model and print metrics.
-
-    Args:
-        model: Trained sklearn model with predict method.
-        X: Feature DataFrame.
-        y: Target Series.
-        set_name: Name of the dataset (e.g., "Train", "Test").
-
-    Returns:
-        Dictionary with MAE, RMSE, R2, and MAPE metrics.
-    """
+    """Evaluate model and print metrics."""
     y_pred = model.predict(X)
 
     mae = mean_absolute_error(y, y_pred)
@@ -195,15 +187,9 @@ def train(config: TrainingConfig) -> Any:
 
     Trains both RandomForest and GradientBoosting regressors,
     evaluates their performance, and saves the best one.
-
-    Args:
-        config: Training configuration with all hyperparameters.
-
-    Returns:
-        The best performing model.
     """
     print(f"\n{'=' * SEPARATOR_WIDTH}")
-    print("Cost Estimation Model Training (v2)")
+    print("Cost Estimation Model Training (v3)")
     print(f"{'=' * SEPARATOR_WIDTH}")
 
     # Load data
@@ -215,12 +201,17 @@ def train(config: TrainingConfig) -> Any:
     print("\nData Statistics:")
     print(f"  Parts: {df['Part_Name'].nunique()} unique")
     print(f"  Damage Types: {df['Damage_Type'].nunique()} unique")
+    print(f"  Car Categories: {df['Car_Category'].nunique()} unique")
     print(f"  Severity Range: {df['Severity'].min()}-{df['Severity'].max()}")
     print(f"  Cost Range: ${df['Estimated_Cost'].min():,} - ${df['Estimated_Cost'].max():,}")
     print(f"  Mean Cost: ${df['Estimated_Cost'].mean():,.0f}")
 
     # Prepare features
-    X, y, part_encoder, damage_encoder = prepare_features(df)
+    X, y, part_encoder, damage_encoder, category_encoder = prepare_features(df)
+
+    print(f"\nFeatures ({len(FEATURE_COLUMNS)}):")
+    for col in FEATURE_COLUMNS:
+        print(f"  - {col}")
 
     # Split data
     X_train, X_test, y_train, y_test = train_test_split(
@@ -337,6 +328,7 @@ def train(config: TrainingConfig) -> Any:
     joblib.dump(other_model, MODEL_DIR / f"cost_estimator_{other_name}.pkl")
     joblib.dump(part_encoder, MODEL_DIR / "part_encoder.pkl")
     joblib.dump(damage_encoder, MODEL_DIR / "damage_encoder.pkl")
+    joblib.dump(category_encoder, MODEL_DIR / "category_encoder.pkl")
 
     # Save metadata
     metadata = {
@@ -345,9 +337,11 @@ def train(config: TrainingConfig) -> Any:
         "test_metrics": best_metrics,
         "parts": part_encoder.classes_.tolist(),
         "damage_types": damage_encoder.classes_.tolist(),
+        "car_categories": category_encoder.classes_.tolist(),
         "severity_range": [int(df["Severity"].min()), int(df["Severity"].max())],
         "feature_names": FEATURE_COLUMNS,
         "feature_importance": dict(zip(FEATURE_COLUMNS, [float(x) for x in best_model.feature_importances_])),
+        "segment_to_category": SEGMENT_TO_CATEGORY,
     }
     with open(MODEL_DIR / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
@@ -360,26 +354,31 @@ def train(config: TrainingConfig) -> Any:
     print(f"{'=' * SEPARATOR_WIDTH}")
 
     examples = [
-        ("Front Bumper", "bumper_dent", 3),
-        ("Front Door", "door_dent", 4),
-        ("Hood", "hood_scratch", 2),
-        ("Windshield", "glass_shatter", 5),
-        ("Headlight", "head_lamp", 3),
+        ("Front Bumper", "bumper_dent", 3, "sedan"),
+        ("Front Door", "door_dent", 4, "luxury"),
+        ("Hood", "hood_scratch", 2, "small"),
+        ("Windshield", "glass_shatter", 5, "family_suv"),
+        ("Headlight", "head_lamp", 3, "sports"),
     ]
 
-    for part, damage_type, severity in examples:
+    for part, damage_type, severity, category in examples:
         try:
             part_enc = part_encoder.transform([part])[0]
             damage_enc = damage_encoder.transform([damage_type])[0]
-            cost = best_model.predict([[part_enc, damage_enc, severity]])[0]
-            print(f"{part} - {damage_type} (Severity {severity}): ${cost:,.0f}")
+            cat_enc = category_encoder.transform([category])[0]
+            severity_sq = severity ** 2
+            part_sev = part_enc * severity
+            damage_sev = damage_enc * severity
+            features = [[part_enc, damage_enc, severity, cat_enc, severity_sq, part_sev, damage_sev]]
+            cost = best_model.predict(features)[0]
+            print(f"{part} - {damage_type} (Severity {severity}, {category}): ${cost:,.0f}")
         except ValueError as e:
             print(f"{part}: Not in training data - {e}")
 
     return best_model
 
 
-def predict(part_name: str, damage_type: str, severity: int) -> float:
+def predict(part_name: str, damage_type: str, severity: int, car_category: str = DEFAULT_CATEGORY) -> float:
     """
     Predict repair cost for given inputs.
 
@@ -387,29 +386,34 @@ def predict(part_name: str, damage_type: str, severity: int) -> float:
         part_name: Name of the damaged car part.
         damage_type: Type of damage (e.g., bumper_dent).
         severity: Damage severity level (1-5).
-
-    Returns:
-        Estimated repair cost.
+        car_category: Vehicle category (e.g., sedan, luxury).
     """
     model = joblib.load(MODEL_DIR / "cost_estimator.pkl")
     part_encoder = joblib.load(MODEL_DIR / "part_encoder.pkl")
     damage_encoder = joblib.load(MODEL_DIR / "damage_encoder.pkl")
+    category_encoder = joblib.load(MODEL_DIR / "category_encoder.pkl")
 
     part_enc = part_encoder.transform([part_name])[0]
     damage_enc = damage_encoder.transform([damage_type])[0]
+    cat_enc = category_encoder.transform([car_category])[0]
+    severity_sq = severity ** 2
+    part_sev = part_enc * severity
+    damage_sev = damage_enc * severity
 
-    cost = model.predict([[part_enc, damage_enc, severity]])[0]
+    features = [[part_enc, damage_enc, severity, cat_enc, severity_sq, part_sev, damage_sev]]
+    cost = model.predict(features)[0]
 
     print(f"Part: {part_name}")
     print(f"Damage Type: {damage_type}")
     print(f"Severity: {severity}/{MAX_SEVERITY}")
+    print(f"Car Category: {car_category}")
     print(f"Estimated Cost: ${cost:,.0f}")
 
     return float(cost)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Cost Estimation Training v2")
+    parser = argparse.ArgumentParser(description="Cost Estimation Training v3")
     parser.add_argument("--data-path", type=Path, default=DATA_DIR / "repair_costs_v2.csv",
                         help="Path to training data CSV")
     parser.add_argument("--random-state", type=int, default=DEFAULT_RANDOM_STATE, help="Random seed")

@@ -25,16 +25,16 @@ MODEL_DIR.mkdir(exist_ok=True)
 RUNS_DIR.mkdir(exist_ok=True)
 
 DEFAULT_BATCH_SIZE = 16
-DEFAULT_EPOCHS = 50
-DEFAULT_LEARNING_RATE = 0.0001
-DEFAULT_WEIGHT_DECAY = 0.01
-DEFAULT_DROPOUT_RATE = 0.5
+DEFAULT_EPOCHS = 80
+DEFAULT_LEARNING_RATE = 0.000133
+DEFAULT_WEIGHT_DECAY = 0.0001
+DEFAULT_DROPOUT_RATE = 0.45
 DEFAULT_LABEL_SMOOTHING = 0.1
-DEFAULT_BACKBONE = "resnet18"
+DEFAULT_BACKBONE = "resnet50"
 DEFAULT_INPUT_SIZE = 224
 DEFAULT_SEED = 42
-DEFAULT_PATIENCE = 12
-DEFAULT_FREEZE_LAYERS = 4
+DEFAULT_PATIENCE = 15
+DEFAULT_FREEZE_LAYERS = 2
 
 SCHEDULER_PATIENCE = 5
 SCHEDULER_FACTOR = 0.5
@@ -212,6 +212,7 @@ def train_epoch(
         outputs = model(images)
         loss = criterion(outputs, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
 
         running_loss += loss.item()

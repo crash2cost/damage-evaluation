@@ -1,11 +1,11 @@
 {
-  "version": 2,
+  "version": 3,
   "best_model": "Random Forest",
   "test_metrics": {
-    "mae": 154.98661051947138,
-    "rmse": 228.10464119229295,
-    "r2": 0.7660284964153168,
-    "mape": 27.968331489072945
+    "mae": 43.721833374673,
+    "rmse": 65.26536945818096,
+    "r2": 0.9808459629141048,
+    "mape": 7.573698796932406
   },
   "parts": [
     "Door Handle",
@@ -43,6 +43,16 @@
     "trunk_dent",
     "trunk_scratch"
   ],
+  "car_categories": [
+    "electric",
+    "family_suv",
+    "luxury",
+    "minivan",
+    "sedan",
+    "small",
+    "sports",
+    "truck"
+  ],
   "severity_range": [
     1,
     5
@@ -50,11 +60,30 @@
   "feature_names": [
     "Part_Encoded",
     "Damage_Encoded",
-    "Severity"
+    "Severity",
+    "Category_Encoded",
+    "Severity_Sq",
+    "Part_Severity",
+    "Damage_Severity"
   ],
   "feature_importance": {
-    "Part_Encoded": 0.20937412794230698,
-    "Damage_Encoded": 0.3602075268637268,
-    "Severity": 0.4304183451939662
+    "Part_Encoded": 0.10526827776420299,
+    "Damage_Encoded": 0.1659604696264314,
+    "Severity": 0.16166886711450754,
+    "Category_Encoded": 0.17384697134683993,
+    "Severity_Sq": 0.16911477867641952,
+    "Part_Severity": 0.10044953375028719,
+    "Damage_Severity": 0.12369110172131142
+  },
+  "segment_to_category": {
+    "Small": "small",
+    "Sedan": "sedan",
+    "Family": "family_suv",
+    "SUV": "family_suv",
+    "Truck": "truck",
+    "Minivan": "minivan",
+    "Sports": "sports",
+    "Luxury": "luxury",
+    "Electric": "electric"
   }
 }

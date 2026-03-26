@@ -20,7 +20,24 @@ SEVERITY_WEIGHTS = ROOT / "severity-model" / "models" / "best_model.pt"
 COST_MODEL = ROOT / "cost-model" / "models" / "cost_estimator.pkl"
 PART_ENCODER = ROOT / "cost-model" / "models" / "part_encoder.pkl"
 DAMAGE_ENCODER = ROOT / "cost-model" / "models" / "damage_encoder.pkl"
+CATEGORY_ENCODER = ROOT / "cost-model" / "models" / "category_encoder.pkl"
 CONFIG_FILE = ROOT / "config" / "damage_mappings.json"
+
+# Mapping from API car_segment names to dataset Car_Category names
+SEGMENT_TO_CATEGORY = {
+    "Small": "small",
+    "Micro": "small",
+    "Sedan": "sedan",
+    "Family": "family_suv",
+    "SUV": "family_suv",
+    "Executive": "sedan",
+    "Truck": "truck",
+    "Minivan": "minivan",
+    "Sports": "sports",
+    "Luxury": "luxury",
+    "Electric": "electric",
+}
+DEFAULT_CATEGORY = "sedan"
 
 SEVERITY_INPUT_SIZE = 224
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
@@ -266,6 +283,7 @@ class Crash2CostPipeline:
         self.cost_model = None
         self.part_encoder = None
         self.damage_encoder = None
+        self.category_encoder = None
 
         if not Path(model_path).exists():
             print(f"Cost model not found: {model_path}")
@@ -275,8 +293,10 @@ class Crash2CostPipeline:
             self.cost_model = joblib.load(model_path)
             self.part_encoder = joblib.load(PART_ENCODER)
             self.damage_encoder = joblib.load(DAMAGE_ENCODER)
+            if CATEGORY_ENCODER.exists():
+                self.category_encoder = joblib.load(CATEGORY_ENCODER)
             print(f"Loaded cost model: {model_path}")
-            print("   Features: Part_Name, Damage_Type, Severity")
+            print("   Features: Part_Name, Damage_Type, Severity, Car_Category + interactions")
         except (FileNotFoundError, ValueError) as e:
             print(f"Failed to load cost model: {e}")
 
@@ -393,11 +413,24 @@ class Crash2CostPipeline:
             return float(DEFAULT_FALLBACK_COST)
 
         part_name = self.damage_to_part.get(damage_type, self.default_unknown_part)
+        car_category = SEGMENT_TO_CATEGORY.get(car_segment, DEFAULT_CATEGORY)
 
         try:
             part_enc = self.part_encoder.transform([part_name])[0]
             damage_enc = self.damage_encoder.transform([damage_type])[0]
-            cost = self.cost_model.predict([[part_enc, damage_enc, severity]])[0]
+
+            # v3 model with category + interaction features
+            if self.category_encoder is not None:
+                cat_enc = self.category_encoder.transform([car_category])[0]
+                severity_sq = severity ** 2
+                part_sev = part_enc * severity
+                damage_sev = damage_enc * severity
+                features = [[part_enc, damage_enc, severity, cat_enc, severity_sq, part_sev, damage_sev]]
+            else:
+                # Fallback for v2 model (3 features only)
+                features = [[part_enc, damage_enc, severity]]
+
+            cost = self.cost_model.predict(features)[0]
             return float(cost)
         except ValueError:
             return float(self.fallback_cost)

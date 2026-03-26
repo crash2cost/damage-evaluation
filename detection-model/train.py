@@ -32,11 +32,11 @@ RUNS_DIR = ROOT / "detection-model" / "runs"
 PRETRAINED_DIR = ROOT / "detection-model" / "pretrained"
 
 # Training defaults
-DEFAULT_EPOCHS = 100
-DEFAULT_BATCH_SIZE = 16
-DEFAULT_IMAGE_SIZE = 640
-DEFAULT_MODEL_SIZE = "s"
-DEFAULT_PATIENCE = 20
+DEFAULT_EPOCHS = 150
+DEFAULT_BATCH_SIZE = 8
+DEFAULT_IMAGE_SIZE = 960
+DEFAULT_MODEL_SIZE = "m"
+DEFAULT_PATIENCE = 30
 DEFAULT_CONFIDENCE = 0.25
 
 # Training configuration
@@ -185,7 +185,8 @@ def train(
         dropout=0.1,  # Dropout in detection head
         # Augmentation
         mosaic=1.0,  # Mosaic augmentation (4 images combined)
-        mixup=0.15,  # MixUp augmentation
+        mixup=0.2,  # MixUp augmentation
+        copy_paste=0.2,  # Copy-paste augmentation for better detection
         hsv_h=0.015,  # HSV-Hue augmentation
         hsv_s=0.7,  # HSV-Saturation augmentation
         hsv_v=0.4,  # HSV-Value augmentation
