@@ -1,29 +1,27 @@
-# --- 1. Project Specific (המבנה שלך) ---
-# התעלם מכל תיקיית דאטהסט בכל רמה בפרויקט
+# Datasets
 **/dataset/
 **/dataset-manual/
 **/dataset-final/
 **/dataset-multiclass/
 **/dataset-multiclass-v2/
 
-# תיקיות תמונות וקבצי מידע
+# Image/label data directories
 archive/
 manual_labels/
 auto_labels/
 CarDD/
 runs/
 car-damage-detector-1/
+models/
+tmp/
 
-# Logs and results
+# Logs
 logs/
 *.log
 *.log.*
-logs/*.log
-results/*.png
-results/*.jpg
 nohup.out
 
-# קבצי תמונות (כדי שלא להעלות תמונות מקריות)
+# Images
 *.jpg
 *.jpeg
 *.png
@@ -34,18 +32,15 @@ nohup.out
 *.gif
 *.tiff
 
-# קבצי CSV עם דאטה (יכולים להיות גדולים)
+# Data files
 *.csv
-
-# קבצי JSON של התקדמות ודאטה
 labeling_progress.json
 training_history.json
 
-# קבצי תיוג YOLO (labels)
+# YOLO labels
 **/labels/*.txt
 
-# התעלם מקבצי מודלים כבדים (שוקלים מאות מגה-בייט)
-# אנחנו רוצים לשמור את הקוד שיוצר אותם, לא את הקבצים הבינאריים עצמם
+# Model weights
 *.pt
 *.pth
 *.h5
@@ -53,27 +48,21 @@ training_history.json
 *.pkl
 *.joblib
 
-# --- 2. Python Basics ---
-# קבצים זמניים שפייתון יוצר אוטומטית (אין סיבה לשמור אותם)
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-# --- 3. Virtual Environments ---
-# סביבות וירטואליות (אם אתה משתמש ב-venv או conda)
+# Virtual environments
 venv/
 env/
 .venv/
 .conda/
 
-# --- 4. OS & IDE Files (חשוב למק) ---
-# קבצי מערכת של Mac
+# OS & IDE
 .DS_Store
-
-# קבצי הגדרות של עורכי קוד (VS Code / PyCharm)
 .vscode/
 .idea/
 
-# --- 5. Security ---
-# משתני סביבה וסיסמאות (אם יהיו לך בהמשך)
+# Environment
 .env
