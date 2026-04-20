@@ -3,6 +3,7 @@
 import argparse
 import io
 import time
+import traceback
 from typing import Dict, List, Optional
 
 import uvicorn
@@ -198,19 +199,28 @@ async def assess_damage(
             })
 
     except UnidentifiedImageError as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=HTTP_BAD_REQUEST,
             detail=f"Invalid image format: {str(e)}"
         )
     except ValueError as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=HTTP_BAD_REQUEST,
             detail=f"Invalid input: {str(e)}"
         )
     except (IOError, RuntimeError) as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=HTTP_INTERNAL_ERROR,
             detail=f"Processing error: {str(e)}"
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=HTTP_INTERNAL_ERROR,
+            detail=f"Unexpected processing error: {str(e)}"
         )
 
 
